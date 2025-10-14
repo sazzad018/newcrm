@@ -1,5 +1,155 @@
 
 // Global Error Prevention
+
+// Invoice List Fix: Handle missing client data
+(function() {
+  'use strict';
+  
+  // Cache for client data
+  const clientCache = new Map();
+  
+  // Fetch client by ID
+  async function fetchClientById(clientId) {
+    if (!clientId) return null;
+    
+    // Check cache first
+    if (clientCache.has(clientId)) {
+      return clientCache.get(clientId);
+    }
+    
+    try {
+      const response = await fetch('/api/clients/' + clientId);
+      if (response.ok) {
+        const client = await response.json();
+        clientCache.set(clientId, client);
+        return client;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch client:', clientId);
+    }
+    
+    return null;
+  }
+  
+  // Enrich invoice with client data
+  async function enrichInvoiceWithClient(invoice) {
+    if (!invoice) return invoice;
+    
+    // If client already exists, return as is
+    if (invoice.client && invoice.client.name) {
+      return invoice;
+    }
+    
+    // If clientId exists but no client object, fetch it
+    if (invoice.clientId) {
+      const client = await fetchClientById(invoice.clientId);
+      if (client) {
+        invoice.client = client;
+      } else {
+        // Fallback: create a minimal client object
+        invoice.client = {
+          id: invoice.clientId,
+          name: 'Unknown Client',
+          email: '',
+          phone: ''
+        };
+      }
+    } else {
+      // No clientId at all, create placeholder
+      invoice.client = {
+        id: 'unknown',
+        name: 'N/A',
+        email: '',
+        phone: ''
+      };
+    }
+    
+    return invoice;
+  }
+  
+  // Enrich array of invoices
+  async function enrichInvoices(invoices) {
+    if (!Array.isArray(invoices)) return invoices;
+    
+    const enrichedInvoices = await Promise.all(
+      invoices.map(invoice => enrichInvoiceWithClient(invoice))
+    );
+    
+    return enrichedInvoices;
+  }
+  
+  // Safe get invoice client name
+  function getInvoiceClientName(invoice) {
+    if (!invoice) return 'N/A';
+    
+    // Try different ways to get client name
+    if (invoice.client && invoice.client.name) {
+      return invoice.client.name;
+    }
+    
+    if (invoice.clientName) {
+      return invoice.clientName;
+    }
+    
+    if (invoice.client_name) {
+      return invoice.client_name;
+    }
+    
+    return 'Unknown Client';
+  }
+  
+  // Intercept fetch to auto-enrich invoice responses
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const response = await originalFetch.apply(this, args);
+    
+    // Clone the response to read it
+    const clonedResponse = response.clone();
+    
+    // Check if this is an invoices API call
+    if (args[0] && args[0].includes('/api/invoices')) {
+      try {
+        const data = await clonedResponse.json();
+        
+        // If it's an array of invoices, enrich them
+        if (Array.isArray(data)) {
+          const enrichedData = await enrichInvoices(data);
+          
+          // Return a new response with enriched data
+          return new Response(JSON.stringify(enrichedData), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+          });
+        }
+        
+        // If it's a single invoice, enrich it
+        if (data && data.id && data.clientId) {
+          const enrichedData = await enrichInvoiceWithClient(data);
+          
+          return new Response(JSON.stringify(enrichedData), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+          });
+        }
+      } catch (err) {
+        // If JSON parsing fails, return original response
+        return response;
+      }
+    }
+    
+    return response;
+  };
+  
+  // Make functions globally available
+  window.enrichInvoiceWithClient = enrichInvoiceWithClient;
+  window.enrichInvoices = enrichInvoices;
+  window.getInvoiceClientName = getInvoiceClientName;
+  
+  console.log('✅ Invoice list fix loaded - Client data will be auto-fetched');
+})();
+
 (function() {
   'use strict';
   
