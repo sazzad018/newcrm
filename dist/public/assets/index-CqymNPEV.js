@@ -1,12 +1,80 @@
 
-// Fix: Add missing formatNumber function
+// Extended Fix: Add all missing utility functions
+
+// Format Number (for balance, amounts, etc.)
 function formatNumber(num) {
-  if (num === null || num === undefined || num === '') return '0';
+  if (num === null || num === undefined || num === '') return '0.00';
   const value = typeof num === 'string' ? parseFloat(num) : num;
-  if (isNaN(value)) return '0';
+  if (isNaN(value)) return '0.00';
   return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+// Parse Number (for form inputs)
+function parseNumber(str) {
+  if (!str || str === '') return 0;
+  const num = typeof str === 'string' ? parseFloat(str.replace(/,/g, '')) : str;
+  return isNaN(num) ? 0 : num;
+}
+
+// Calculate Balance (for transactions)
+function calculateBalance(transactions) {
+  if (!Array.isArray(transactions)) return 0;
+  
+  let balance = 0;
+  transactions.forEach(t => {
+    const amount = parseFloat(t.amount || 0);
+    if (t.type === 'topup') {
+      balance += amount;
+    } else if (t.type === 'expense') {
+      balance -= amount;
+    }
+  });
+  return balance;
+}
+
+// Format Date (for display)
+function formatDate(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Format Currency (with symbol)
+function formatCurrency(amount, currency = 'BDT') {
+  const num = formatNumber(amount);
+  const symbol = currency === 'BDT' ? '৳' : currency === 'USD' ? '$' : '€';
+  return symbol + ' ' + num;
+}
+
+// Calculate Invoice Total
+function calculateInvoiceTotal(lineItems, discountPercent = 0, vatPercent = 0) {
+  if (!Array.isArray(lineItems)) return 0;
+  
+  let subtotal = 0;
+  lineItems.forEach(item => {
+    const amount = parseFloat(item.amount || 0);
+    subtotal += amount;
+  });
+  
+  const discount = (subtotal * parseFloat(discountPercent || 0)) / 100;
+  const afterDiscount = subtotal - discount;
+  const vat = (afterDiscount * parseFloat(vatPercent || 0)) / 100;
+  const total = afterDiscount + vat;
+  
+  return total;
+}
+
+// Make functions globally available
 window.formatNumber = formatNumber;
+window.parseNumber = parseNumber;
+window.calculateBalance = calculateBalance;
+window.formatDate = formatDate;
+window.formatCurrency = formatCurrency;
+window.calculateInvoiceTotal = calculateInvoiceTotal;
+
+console.log('✅ Extended utility functions loaded');
+
 
 var OP=Object.defineProperty;var Mg=e=>{throw TypeError(e)};var IP=(e,t,n)=>t in e?OP(e,t,{enumerable:!0,configurable:!0,writable:!0,value:n}):e[t]=n;var T=(e,t,n)=>IP(e,typeof t!="symbol"?t+"":t,n),Vd=(e,t,n)=>t.has(e)||Mg("Cannot "+n);var k=(e,t,n)=>(Vd(e,t,"read from private field"),n?n.call(e):t.get(e)),ve=(e,t,n)=>t.has(e)?Mg("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,n),ne=(e,t,n,r)=>(Vd(e,t,"write to private field"),r?r.call(e,n):t.set(e,n),n),_e=(e,t,n)=>(Vd(e,t,"access private method"),n);var rc=(e,t,n,r)=>({set _(s){ne(e,t,s,n)},get _(){return k(e,t,r)}});function MP(e,t){for(var n=0;n<t.length;n++){const r=t[n];if(typeof r!="string"&&!Array.isArray(r)){for(const s in r)if(s!=="default"&&!(s in e)){const i=Object.getOwnPropertyDescriptor(r,s);i&&Object.defineProperty(e,s,i.get?i:{enumerable:!0,get:()=>r[s]})}}}return Object.freeze(Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}))}(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const s of document.querySelectorAll('link[rel="modulepreload"]'))r(s);new MutationObserver(s=>{for(const i of s)if(i.type==="childList")for(const a of i.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&r(a)}).observe(document,{childList:!0,subtree:!0});function n(s){const i={};return s.integrity&&(i.integrity=s.integrity),s.referrerPolicy&&(i.referrerPolicy=s.referrerPolicy),s.crossOrigin==="use-credentials"?i.credentials="include":s.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function r(s){if(s.ep)return;s.ep=!0;const i=n(s);fetch(s.href,i)}})();function sj(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var ij={exports:{}},qu={},oj={exports:{}},Te={};/**
  * @license React
