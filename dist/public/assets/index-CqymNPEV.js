@@ -1,3 +1,13 @@
+
+// Fix: Add missing formatNumber function
+function formatNumber(num) {
+  if (num === null || num === undefined || num === '') return '0';
+  const value = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(value)) return '0';
+  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+window.formatNumber = formatNumber;
+
 var OP=Object.defineProperty;var Mg=e=>{throw TypeError(e)};var IP=(e,t,n)=>t in e?OP(e,t,{enumerable:!0,configurable:!0,writable:!0,value:n}):e[t]=n;var T=(e,t,n)=>IP(e,typeof t!="symbol"?t+"":t,n),Vd=(e,t,n)=>t.has(e)||Mg("Cannot "+n);var k=(e,t,n)=>(Vd(e,t,"read from private field"),n?n.call(e):t.get(e)),ve=(e,t,n)=>t.has(e)?Mg("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,n),ne=(e,t,n,r)=>(Vd(e,t,"write to private field"),r?r.call(e,n):t.set(e,n),n),_e=(e,t,n)=>(Vd(e,t,"access private method"),n);var rc=(e,t,n,r)=>({set _(s){ne(e,t,s,n)},get _(){return k(e,t,r)}});function MP(e,t){for(var n=0;n<t.length;n++){const r=t[n];if(typeof r!="string"&&!Array.isArray(r)){for(const s in r)if(s!=="default"&&!(s in e)){const i=Object.getOwnPropertyDescriptor(r,s);i&&Object.defineProperty(e,s,i.get?i:{enumerable:!0,get:()=>r[s]})}}}return Object.freeze(Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}))}(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const s of document.querySelectorAll('link[rel="modulepreload"]'))r(s);new MutationObserver(s=>{for(const i of s)if(i.type==="childList")for(const a of i.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&r(a)}).observe(document,{childList:!0,subtree:!0});function n(s){const i={};return s.integrity&&(i.integrity=s.integrity),s.referrerPolicy&&(i.referrerPolicy=s.referrerPolicy),s.crossOrigin==="use-credentials"?i.credentials="include":s.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function r(s){if(s.ep)return;s.ep=!0;const i=n(s);fetch(s.href,i)}})();function sj(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,"default")?e.default:e}var ij={exports:{}},qu={},oj={exports:{}},Te={};/**
  * @license React
  * react.production.min.js
