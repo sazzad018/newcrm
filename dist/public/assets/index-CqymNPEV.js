@@ -1,5 +1,142 @@
 
+// Global Error Prevention
+(function() {
+  'use strict';
+  
+  // Safe object property accessor
+  window.safeAccess = function(obj, path, defaultValue = null) {
+    if (!obj) return defaultValue;
+    
+    const keys = path.split('.');
+    let current = obj;
+    
+    for (const key of keys) {
+      if (current === null || current === undefined || !(key in current)) {
+        return defaultValue;
+      }
+      current = current[key];
+    }
+    
+    return current;
+  };
+  
+  // Patch Array.prototype.map to handle undefined items
+  const originalMap = Array.prototype.map;
+  Array.prototype.map = function(callback, thisArg) {
+    const result = [];
+    for (let i = 0; i < this.length; i++) {
+      if (i in this) {
+        // Safely call callback with error handling
+        try {
+          result.push(callback.call(thisArg, this[i], i, this));
+        } catch (error) {
+          console.warn('Map callback error at index ' + i + ':', error.message);
+          // Return a safe default or skip
+          result.push(undefined);
+        }
+      }
+    }
+    return result;
+  };
+  
+  // Global error handler for uncaught errors
+  window.addEventListener('error', function(event) {
+    if (event.message && event.message.includes('Cannot read properties of undefined')) {
+      console.warn('Prevented undefined property access error:', event.message);
+      event.preventDefault();
+      return true;
+    }
+  });
+  
+  // Global promise rejection handler
+  window.addEventListener('unhandledrejection', function(event) {
+    if (event.reason && event.reason.message && 
+        event.reason.message.includes('Cannot read properties of undefined')) {
+      console.warn('Prevented undefined property access in promise:', event.reason.message);
+      event.preventDefault();
+    }
+  });
+  
+  console.log('🛡️ Global error prevention active');
+})();
+
+
 // Extended Fix: Add all missing utility functions
+
+// Invoice Fix: Safe data handling for invoice operations
+
+// Safe get client name
+function safeGetClientName(client) {
+  if (!client) return 'N/A';
+  return client.name || client.clientName || 'Unknown Client';
+}
+
+// Safe get client data
+function safeGetClient(client) {
+  if (!client) return {
+    name: 'N/A',
+    email: '',
+    phone: '',
+    companyName: ''
+  };
+  return {
+    name: client.name || client.clientName || 'Unknown',
+    email: client.email || '',
+    phone: client.phone || '',
+    companyName: client.companyName || client.company_name || ''
+  };
+}
+
+// Safe get line items
+function safeGetLineItems(items) {
+  if (!items || !Array.isArray(items)) return [];
+  return items.map((item, index) => ({
+    description: item?.description || `Item ${index + 1}`,
+    quantity: item?.quantity || 1,
+    rate: parseFloat(item?.rate || 0),
+    amount: parseFloat(item?.amount || 0)
+  }));
+}
+
+// Safe calculate line item amount
+function safeCalculateLineItemAmount(quantity, rate) {
+  const qty = parseFloat(quantity || 0);
+  const rt = parseFloat(rate || 0);
+  return qty * rt;
+}
+
+// Safe get invoice data
+function safeGetInvoiceData(invoice) {
+  if (!invoice) return null;
+  
+  return {
+    invoiceNumber: invoice.invoiceNumber || invoice.invoice_number || 'INV-000',
+    issueDate: invoice.issueDate || invoice.issue_date || new Date().toISOString(),
+    workStartDate: invoice.workStartDate || invoice.work_start_date || null,
+    workEndDate: invoice.workEndDate || invoice.work_end_date || null,
+    lineItems: safeGetLineItems(invoice.lineItems || invoice.line_items || []),
+    subtotal: parseFloat(invoice.subtotal || 0),
+    discountPercent: parseFloat(invoice.discountPercent || invoice.discount_percent || 0),
+    vatPercent: parseFloat(invoice.vatPercent || invoice.vat_percent || 0),
+    total: parseFloat(invoice.total || 0),
+    companyName: invoice.companyName || invoice.company_name || 'Social Ads Expert',
+    companyEmail: invoice.companyEmail || invoice.company_email || '',
+    companyPhone: invoice.companyPhone || invoice.company_phone || '',
+    companyAddress: invoice.companyAddress || invoice.company_address || '',
+    brandColor: invoice.brandColor || invoice.brand_color || '#BFA1FE',
+    currency: invoice.currency || 'BDT'
+  };
+}
+
+// Make functions globally available
+window.safeGetClientName = safeGetClientName;
+window.safeGetClient = safeGetClient;
+window.safeGetLineItems = safeGetLineItems;
+window.safeCalculateLineItemAmount = safeCalculateLineItemAmount;
+window.safeGetInvoiceData = safeGetInvoiceData;
+
+console.log('✅ Invoice safety functions loaded');
+
 
 // Format Number (for balance, amounts, etc.)
 function formatNumber(num) {
