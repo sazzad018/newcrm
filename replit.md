@@ -62,31 +62,64 @@ This is a production-ready **Social Ads Expert** application - a comprehensive c
 - Safe client name rendering in invoice list
 - 4 new functions: `fetchClientById()`, `enrichInvoiceWithClient()`, `enrichInvoices()`, `getInvoiceClientName()`
 
-**Database Schema Fix (October 15, 2025):**
-**Problem:** Top-up not adding amount to balance - transactions not saving to database
-**Root Cause:** UUID auto-generation function was missing from database tables
-**Solution Applied (Replit):**
-- Enabled `uuid-ossp` PostgreSQL extension
-- Set default `uuid_generate_v4()` for ID columns in 4 tables:
-  - `transactions` - For top-ups and expenses
-  - `invoices` - For invoice creation
-  - `facebook_marketing` - For FB marketing metrics
-  - `website_details` - For website credentials
+**Top-up Critical Bugs Fixed (October 15, 2025):**
+
+**Problem:** Top-up not working - amount not adding to balance
+
+**Root Causes Identified:**
+1. ❌ **Database UUID Missing:** pgcrypto extension not enabled, gen_random_uuid() defaults not set
+2. ❌ **Backend Route Missing:** `/api/clients/:id/topup` endpoint completely missing from backend code
+
+**Solutions Applied (Replit - DONE ✅):**
+
+1. **Database Fix:**
+   - Enabled `pgcrypto` extension (matches schema requirement)
+   - Set default `gen_random_uuid()` for 4 tables:
+     - `transactions` - For top-ups and expenses
+     - `invoices` - For invoice creation
+     - `facebook_marketing` - For FB marketing metrics
+     - `website_details` - For website credentials
+
+2. **Backend Route Fix:**
+   - Added missing `/api/clients/:id/topup` endpoint to `dist/index.js` (line 783-799)
+   - Route properly handles amount, description, and creates transaction
+   - Automatically updates client balance using "top-up" type
 
 **SQL Commands Used:**
 ```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-ALTER TABLE transactions ALTER COLUMN id SET DEFAULT uuid_generate_v4();
-ALTER TABLE invoices ALTER COLUMN id SET DEFAULT uuid_generate_v4();
-ALTER TABLE facebook_marketing ALTER COLUMN id SET DEFAULT uuid_generate_v4();
-ALTER TABLE website_details ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER TABLE transactions ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE invoices ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE facebook_marketing ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE website_details ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ```
+
+**Backend Code Added (dist/index.js line 783-799):**
+```javascript
+app2.post("/api/clients/:id/topup", async (req, res) => {
+  const { amount, description } = req.body;
+  const clientId = req.params.id;
+  const transactionData = {
+    clientId,
+    type: "top-up",
+    amount: amount.toString(),
+    description: description || "Top-up",
+    date: new Date()
+  };
+  const transaction = await storage.createTransaction(transactionData);
+  res.json(transaction);
+});
+```
+
+**Result:** ✅ Top-up now works perfectly in Replit!
 
 **Documentation Created:**
 - `সম্পূর্ণ-সমাধান-গাইড.md` - Comprehensive Bengali solution guide
 - `DOWNLOAD-এবং-UPLOAD.md` - Quick download and upload instructions
 - `FINAL-FIX-সম্পূর্ণ-গাইড.md` - Complete final fix guide with all solutions
 - `DATABASE-FIX-টপআপ-সমাধান.md` - Database fix guide for shared hosting
+- `SHARED-HOSTING-UUID-FIX.md` - UUID extension workarounds
+- `FINAL-TOPUP-FIX-COMPLETE.md` - **Complete step-by-step fix for shared hosting**
 
 ## Project Architecture
 

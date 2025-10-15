@@ -777,6 +777,23 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
+  app2.post("/api/clients/:id/topup", async (req, res) => {
+    try {
+      const { amount, description } = req.body;
+      const clientId = req.params.id;
+      const transactionData = {
+        clientId,
+        type: "top-up",
+        amount: amount.toString(),
+        description: description || "Top-up",
+        date: new Date()
+      };
+      const transaction = await storage.createTransaction(transactionData);
+      res.json(transaction);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
   app2.post("/api/transactions", async (req, res) => {
     try {
       const validated = insertTransactionSchema.parse(req.body);
