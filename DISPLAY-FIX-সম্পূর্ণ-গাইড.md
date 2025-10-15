@@ -90,7 +90,7 @@ Frontend `Array.isArray()` check fail করে তাই render হয় ন�
 
 ## ✅ Replit এ Fix করা হয়েছে (DONE)
 
-### Fix 1: Client API তে সব data include করা হয়েছে
+### Fix 1: Client API তে সব data include করা হয়েছে (Line 711-729)
 
 **After (Fixed - Line 711-729):**
 ```javascript
@@ -119,9 +119,11 @@ app2.get("/api/clients/:id", async (req, res) => {
 });
 ```
 
-### Fix 2: Facebook Marketing Array Format (Line 722)
+### Fix 2: Facebook Marketing Array Format
 
-**Critical Fix - Object → Array:**
+**Critical Fix - Object → Array (2 places):**
+
+#### A) Client API (Line 722):
 
 **Before (Problem):**
 ```javascript
@@ -142,6 +144,32 @@ res.json({
   transactions: transactions2
 });
 ```
+
+#### B) Portal API (Line 919):
+
+**Before (Problem):**
+```javascript
+app2.get("/api/portal/:portalId", async (req, res) => {
+  res.json({
+    client,
+    facebookMarketing: fb,  // ❌ Object - causes error!
+    transactions: transactions2
+  });
+});
+```
+
+**After (Fixed):**
+```javascript
+app2.get("/api/portal/:portalId", async (req, res) => {
+  res.json({
+    client,
+    facebookMarketing: fb ? [fb] : [],  // ✅ Array - works!
+    transactions: transactions2
+  });
+});
+```
+
+**Important:** Portal API ও fix করতে হয়েছে নাহলে Client Portal open করলে error আসে!
 
 ### Fixed Response (এখন):
 ```json
@@ -249,11 +277,15 @@ res.json({
 ### What Changed:
 
 **File Modified:** `dist/index.js`
-**Lines Changed:** 711-729 (Client API route)
+**Lines Changed:** 
+- 711-729 (Client API route)
+- 906-925 (Portal API route)
 
 **Changes Applied:**
 1. ✅ Client API এ facebookMarketing, websiteDetails, transactions data include করা হয়েছে
-2. ✅ facebookMarketing data array format এ convert করা হয়েছে (line 722)
+2. ✅ facebookMarketing data array format এ convert করা হয়েছে (2 places):
+   - Client API (line 722)
+   - Portal API (line 919)
 3. ✅ Frontend rendering logic এর সাথে compatible করা হয়েছে
 
 **Before:**
