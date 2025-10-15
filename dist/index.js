@@ -585,7 +585,7 @@ var PgStorage = class {
     const [transaction] = await db.insert(transactions).values({ ...data, id }).returning();
     const client = await this.getClient(data.clientId);
     if (client) {
-      const newBalance = data.type === "top-up" ? (parseFloat(client.balance) || 0) + parseFloat(data.amount) : (parseFloat(client.balance) || 0) - parseFloat(data.amount);
+      const newBalance = data.type === "topup" ? (parseFloat(client.balance) || 0) + parseFloat(data.amount) : (parseFloat(client.balance) || 0) - parseFloat(data.amount);
       await this.updateClient(data.clientId, { balance: newBalance.toString() });
     }
     return transaction;
@@ -720,7 +720,7 @@ var PgStorage = class {
     const [monthlyTopUps] = await db.select({
       monthlyRevenue: sql2`coalesce(sum(cast(amount as decimal)), 0)`
     }).from(transactions)
-      .where(sql2`type = 'top-up' AND created_at >= ${startOfMonth.toISOString()}`);
+      .where(sql2`type = 'topup' AND created_at >= ${startOfMonth.toISOString()}`);
     
     return {
       totalClients: clientStats?.total || 0,
@@ -754,7 +754,7 @@ async function registerRoutes(app2) {
       const transactions2 = await storage.getTransactions(client.id, 10, 0);
       
       // Filter only top-up transactions and format with + signs
-      const topUpOnly = transactions2.filter(t => t.type === 'top-up');
+      const topUpOnly = transactions2.filter(t => t.type === 'topup');
       const formattedTransactions = topUpOnly.map(t => ({
         ...t,
         formattedAmount: `+${t.amount}`,
@@ -852,7 +852,7 @@ async function registerRoutes(app2) {
       const clientId = req.params.id;
       const transactionData = {
         clientId,
-        type: "top-up",
+        type: "topup",
         amount: amount.toString(),
         description: description || "Top-up",
         date: new Date()
@@ -879,7 +879,7 @@ async function registerRoutes(app2) {
       const transactions2 = await storage.getTransactions(req.params.id, limit, offset);
       
       // Filter only top-up transactions (not expenses from FB marketing)
-      const topUpOnly = transactions2.filter(t => t.type === 'top-up');
+      const topUpOnly = transactions2.filter(t => t.type === 'topup');
       
       // Add formatted amount with + sign for display
       const formattedTransactions = topUpOnly.map(t => ({
@@ -992,7 +992,7 @@ async function registerRoutes(app2) {
       
       // Calculate total top-ups (sum of ALL top-up transactions, not just last 10)
       const allTransactions = await storage.getTransactions(client.id, 999999, 0);
-      const topUpTransactions = allTransactions.filter(t => t.type === 'top-up');
+      const topUpTransactions = allTransactions.filter(t => t.type === 'topup');
       const totalTopUps = topUpTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
       
       // Calculate total expense (sum of ALL FB marketing daily spend)
@@ -1038,14 +1038,30 @@ async function registerRoutes(app2) {
           created_at: websiteDetails.createdAt, // snake_case alias
           updated_at: websiteDetails.updatedAt  // snake_case alias
         } : null,
-        transactions: (transactions || [])
-          .filter(t => t.type === 'top-up')
-          .map(t => ({
-            ...t,
-            created_at: t.createdAt, // snake_case alias
-            formattedAmount: `+${t.amount}`,
-            displayType: 'ব্যালেন্স যোগ'
-          })),
+        transactions: [
+          // Top-up transactions with + formatting
+          ...(transactions || [])
+            .filter(t => t.type === 'topup')
+            .map(t => ({
+              ...t,
+              created_at: t.createdAt,
+              formattedAmount: `+${t.amount}`,
+              displayType: 'ব্যালেন্স যোগ'
+            })),
+          // Synthetic expense transactions from FB marketing (for frontend sum calculation)
+          ...(facebookMarketingRecords || []).map(fb => ({
+            id: fb.id,
+            clientId: fb.clientId,
+            type: 'expense',
+            amount: fb.dailySpend,
+            description: 'Facebook Marketing',
+            date: fb.date,
+            createdAt: fb.createdAt,
+            created_at: fb.createdAt,
+            formattedAmount: `-${fb.dailySpend}`,
+            displayType: 'মার্কেটিং খরচ'
+          }))
+        ],
         invoices: invoices || [],
         offers: (activeOffers || []).map(o => ({
           ...o,
