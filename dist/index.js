@@ -699,6 +699,19 @@ var PgStorage = class {
     await db.delete(quickMessages).where(eq(quickMessages.id, id));
     return { success: true };
   }
+  // Campaign Titles
+  async createCampaignTitle(data) {
+    const id = generateUUID();
+    const [campaignTitle] = await db.insert(campaignTitles).values({ ...data, id }).returning();
+    return campaignTitle;
+  }
+  async getCampaignTitles() {
+    return db.select().from(campaignTitles).orderBy(desc(campaignTitles.createdAt));
+  }
+  async deleteCampaignTitle(id) {
+    await db.delete(campaignTitles).where(eq(campaignTitles.id, id));
+    return { success: true };
+  }
   // Stats
   async getStats() {
     const [clientStats] = await db.select({
@@ -1207,6 +1220,53 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Campaign Title Generator
+  app2.post("/api/campaign-titles/generate", async (req, res) => {
+    try {
+      const { clientName, budget, endDate } = req.body;
+      
+      // Generate campaign title based on client name, budget, and end date
+      const budgetFormatted = parseFloat(budget).toFixed(0);
+      const dateObj = new Date(endDate);
+      const month = dateObj.toLocaleDateString('bn-BD', { month: 'long' });
+      const day = dateObj.getDate();
+      
+      // Bengali campaign title format: "ক্লায়েন্ট নাম - ৫০০০ টাকা - ৩১ অক্টোবর পর্যন্ত"
+      const generatedTitle = `${clientName} - ${budgetFormatted} টাকা - ${day} ${month} পর্যন্ত`;
+      
+      // Save to database
+      const campaignTitle = await storage.createCampaignTitle({
+        clientName,
+        budget: budget.toString(),
+        endDate: new Date(endDate),
+        generatedTitle
+      });
+      
+      res.json(campaignTitle);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  app2.get("/api/campaign-titles", async (req, res) => {
+    try {
+      const titles = await storage.getCampaignTitles();
+      res.json(titles);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app2.delete("/api/campaign-titles/:id", async (req, res) => {
+    try {
+      await storage.deleteCampaignTitle(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app2.get("/api/stats", async (req, res) => {
     try {
       const stats = await storage.getStats();
