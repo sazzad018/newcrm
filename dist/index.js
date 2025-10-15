@@ -990,6 +990,10 @@ async function registerRoutes(app2) {
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
+      // Calculate total top-ups (sum of all top-up transactions)
+      const topUpTransactions = transactions.filter(t => t.type === 'top-up');
+      const totalTopUps = topUpTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+      
       // Return comprehensive portal data with null safety and snake_case aliases for frontend
       // Note: Frontend expects name, email, etc. at root level (not just nested in client)
       res.json({
@@ -999,6 +1003,7 @@ async function registerRoutes(app2) {
         phone: client.phone,
         companyName: client.companyName,
         balance: client.balance,
+        totalTopUps: totalTopUps.toString(),
         // Nested client object (kept for compatibility)
         client: {
           id: client.id,
@@ -1007,6 +1012,7 @@ async function registerRoutes(app2) {
           phone: client.phone,
           companyName: client.companyName,
           balance: client.balance,
+          totalTopUps: totalTopUps.toString(),
           status: client.status,
           createdAt: client.createdAt,
           created_at: client.createdAt, // snake_case alias for frontend
