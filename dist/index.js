@@ -244,6 +244,7 @@ var clients = pgTable("clients", {
   category: text("category").notNull().default("normal"),
   // normal, website-needed, business-plan-needed, final
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
+  portalId: varchar("portal_id").unique().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var facebookMarketing = pgTable("facebook_marketing", {
@@ -402,6 +403,7 @@ var clientTagsRelations = relations(clientTags, ({ one }) => ({
 }));
 var insertClientSchema = createInsertSchema(clients).omit({
   id: true,
+  portalId: true,
   createdAt: true
 });
 var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
@@ -500,6 +502,10 @@ var PgStorage = class {
   }
   async getClient(id) {
     const [client] = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
+    return client;
+  }
+  async getClientByPortalId(portalId) {
+    const [client] = await db.select().from(clients).where(eq(clients.portalId, portalId)).limit(1);
     return client;
   }
   async getClients() {
@@ -897,6 +903,46 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Portal API - Client portal access by portal ID
+  app2.get("/api/portal/:portalId", async (req, res) => {
+    try {
+      const client = await storage.getClientByPortalId(req.params.portalId);
+      
+      if (!client) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+      
+      // Fetch all related data for the client
+      const facebookMarketing = await storage.getFacebookMarketing(client.id);
+      const websiteDetails = await storage.getWebsiteDetails(client.id);
+      const transactions = await storage.getTransactions(client.id);
+      const invoices = await storage.getInvoices(client.id);
+      const activeOffers = await storage.getActiveOffers();
+      
+      // Return comprehensive portal data
+      res.json({
+        client: {
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          phone: client.phone,
+          companyName: client.companyName,
+          balance: client.balance,
+          status: client.status,
+          createdAt: client.createdAt
+        },
+        facebookMarketing: facebookMarketing ? [facebookMarketing] : [],
+        websiteDetails: websiteDetails || null,
+        transactions: transactions || [],
+        invoices: invoices || [],
+        offers: activeOffers || []
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app2.get("/api/tags", async (req, res) => {
     try {
       const tags2 = await storage.getTags();
