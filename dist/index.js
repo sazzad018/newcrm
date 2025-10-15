@@ -921,7 +921,15 @@ async function registerRoutes(app2) {
       const activeOffers = await storage.getActiveOffers();
       
       // Return comprehensive portal data with null safety and snake_case aliases for frontend
+      // Note: Frontend expects name, email, etc. at root level (not just nested in client)
       res.json({
+        // Root level fields for frontend compatibility
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        companyName: client.companyName,
+        balance: client.balance,
+        // Nested client object (kept for compatibility)
         client: {
           id: client.id,
           name: client.name,
