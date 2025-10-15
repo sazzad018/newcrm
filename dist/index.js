@@ -995,13 +995,28 @@ async function registerRoutes(app2) {
         validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       }));
       
-      res.json({
+      const response = {
         client: clientWithAliases,
         facebookMarketing: fbWithAliases,
         websiteDetails: websiteWithAliases,
         transactions: transactionsWithAliases,
         offers: offersWithAliases
+      };
+      
+      // Debug: Log camelCase fields that might be undefined
+      console.log('[Portal Debug] Response timestamps:', {
+        'client.createdAt': response.client?.createdAt ? 'EXISTS' : 'UNDEFINED',
+        'website.createdAt': response.websiteDetails?.createdAt ? 'EXISTS' : 'UNDEFINED',
+        'website.updatedAt': response.websiteDetails?.updatedAt ? 'EXISTS' : 'UNDEFINED',
+        'fb[0].createdAt': response.facebookMarketing?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
+        'fb[0].date': response.facebookMarketing?.[0]?.date ? 'EXISTS' : 'UNDEFINED',
+        'offers[0].createdAt': response.offers?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
+        'offers[0].updatedAt': response.offers?.[0]?.updatedAt ? 'EXISTS' : 'UNDEFINED',
+        'trans[0].createdAt': response.transactions?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
+        'trans[0].date': response.transactions?.[0]?.date ? 'EXISTS' : 'UNDEFINED'
       });
+      
+      res.json(response);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
