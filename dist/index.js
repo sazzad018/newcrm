@@ -711,11 +711,23 @@ var PgStorage = class {
     const [campaignStats] = await db.select({
       totalSpend: sql2`coalesce(sum(cast(daily_spend as decimal)), 0)`
     }).from(facebookMarketing);
+    
+    // Calculate monthly top-ups (current month only, type='top-up')
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const [monthlyTopUps] = await db.select({
+      monthlyRevenue: sql2`coalesce(sum(cast(amount as decimal)), 0)`
+    }).from(transactions)
+      .where(sql2`type = 'top-up' AND created_at >= ${startOfMonth.toISOString()}`);
+    
     return {
       totalClients: clientStats?.total || 0,
       activeClients: clientStats?.active || 0,
       totalBalance: balanceStats?.totalBalance || 0,
-      totalAdSpend: campaignStats?.totalSpend || 0
+      totalAdSpend: campaignStats?.totalSpend || 0,
+      monthlyRevenue: monthlyTopUps?.monthlyRevenue || 0
     };
   }
 };
