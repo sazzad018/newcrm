@@ -2,29 +2,44 @@
 
 ## 🐛 সমস্যা কী ছিল?
 
-Facebook marketing record যোগ করতে গেলে **400 Bad Request** error আসছিল:
+Facebook marketing record যোগ করতে গেলে **2টি error** আসছিল:
+
+### Error 1: clientId Required
 ```
-Error: clientId Required
+400 Bad Request: clientId Required
+```
+
+### Error 2: Date Validation Failed
+```
+400 Bad Request: Expected date, received string
 ```
 
 **Same সমস্যা** website details এও ছিল।
 
 ---
 
-## 🔍 Root Cause
+## 🔍 Root Causes
 
+### Problem 1: Missing clientId in Request Body
 Backend validation schema expect করছিল `clientId` request body তে থাকবে, কিন্তু:
 - Frontend শুধু data পাঠাচ্ছিল (dailySpend, reach, sales, etc.)
 - `clientId` ছিল URL parameter এ (`:id`)
 - Backend route তা body তে add করছিল না
 
-**Exactly topup এর মতো same issue!**
+### Problem 2: Date Field Validation
+Schema validation issue:
+- Frontend string পাঠাচ্ছিল: `"2025-10-15"`
+- Backend Date object expect করছিল
+- Schema তে date transformation ছিল না
+- Invoice schema তে আছে কিন্তু Facebook marketing schema তে নাই
+
+**Exactly topup এর মতো same pattern!**
 
 ---
 
 ## ✅ Replit এ Fix করা হয়েছে (DONE)
 
-### Facebook Marketing Route Fix:
+### Fix 1: Facebook Marketing Route Fix (Line 750-753):
 **Before:**
 ```javascript
 app2.post("/api/clients/:id/facebook-marketing", async (req, res) => {
@@ -44,7 +59,26 @@ app2.post("/api/clients/:id/facebook-marketing", async (req, res) => {
 });
 ```
 
-### Website Details Route Fix:
+### Fix 2: Facebook Marketing Schema Fix (Line 411-416):
+**Before:**
+```javascript
+var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
+  id: true,
+  createdAt: true
+}); // ❌ No date transformation!
+```
+
+**After (Fixed):**
+```javascript
+var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
+  id: true,
+  createdAt: true
+}).extend({
+  date: z.coerce.date().optional() // ✅ Date string → Date object
+});
+```
+
+### Fix 3: Website Details Route Fix (Line 768-771):
 **Before:**
 ```javascript
 app2.post("/api/clients/:id/website-details", async (req, res) => {
@@ -65,6 +99,11 @@ app2.post("/api/clients/:id/website-details", async (req, res) => {
 ```
 
 **Result:** ✅ Replit এ Facebook marketing ও website details এখন perfectly কাজ করছে!
+
+### What Was Fixed:
+1. ✅ **Route handlers** - clientId added from URL parameter
+2. ✅ **Schema validation** - Date string transformation added
+3. ✅ **Both issues resolved** - 400 errors fixed
 
 ---
 

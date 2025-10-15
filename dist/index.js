@@ -408,6 +408,8 @@ var insertClientSchema = createInsertSchema(clients).omit({
 var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
   id: true,
   createdAt: true
+}).extend({
+  date: z.coerce.date().optional()
 });
 var insertWebsiteDetailsSchema = createInsertSchema(websiteDetails).omit({
   id: true,

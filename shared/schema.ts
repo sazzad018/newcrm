@@ -203,6 +203,8 @@ export const insertClientSchema = createInsertSchema(clients).omit({
 export const insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({ 
   id: true, 
   createdAt: true 
+}).extend({
+  date: z.coerce.date().optional(),
 });
 
 export const insertWebsiteDetailsSchema = createInsertSchema(websiteDetails).omit({ 

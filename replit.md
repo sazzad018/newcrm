@@ -115,26 +115,48 @@ app2.post("/api/clients/:id/topup", async (req, res) => {
 
 **Additional Route Fixes (October 15, 2025):**
 
-**Problem:** Facebook marketing and website details routes throwing "clientId Required" validation error
+**Problem:** Facebook marketing and website details routes throwing validation errors:
+1. "clientId Required" - 400 Bad Request
+2. "Expected date, received string" - 400 Bad Request
 
-**Root Cause:** Same issue as topup - routes were not adding clientId from URL parameter to request body before validation
+**Root Causes:**
+1. Routes were not adding clientId from URL parameter to request body before validation
+2. Schema validation missing date string transformation (frontend sends string, backend expects Date)
 
 **Solutions Applied:**
+
 1. **Facebook Marketing Route Fix (line 750-753):**
    - Added `clientId: req.params.id` to request body before validation
    - Route now properly handles daily spend, reach, sales data
 
-2. **Website Details Route Fix (line 768-771):**
+2. **Facebook Marketing Schema Fix (line 411-416):**
+   - Added `.extend({ date: z.coerce.date().optional() })` to schema
+   - Date strings now automatically converted to Date objects
+   
+3. **Website Details Route Fix (line 768-771):**
    - Added `clientId: req.params.id` to request body before validation
    - Route now properly handles hosting credentials, passwords
 
-**Code Pattern Applied:**
+**Code Patterns Applied:**
 ```javascript
+// Route fix
 const data = { ...req.body, clientId: req.params.id };
 const validated = schema.parse(data);
+
+// Schema fix
+var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
+  id: true,
+  createdAt: true
+}).extend({
+  date: z.coerce.date().optional()
+});
 ```
 
 **Result:** ✅ All client-specific POST routes now working perfectly!
+
+**Files Modified:**
+- `dist/index.js` - Route handlers + schema validation (line 411-416, 750-753, 768-771)
+- `shared/schema.ts` - Facebook marketing schema (line 206-211)
 
 **Documentation Created:**
 - `সম্পূর্ণ-সমাধান-গাইড.md` - Comprehensive Bengali solution guide
