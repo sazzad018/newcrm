@@ -711,7 +711,15 @@ async function registerRoutes(app2) {
       if (!client) {
         return res.status(404).json({ error: "Client not found" });
       }
-      res.json(client);
+      const fb = await storage.getFacebookMarketing(client.id);
+      const website = await storage.getWebsiteDetails(client.id);
+      const transactions2 = await storage.getTransactions(client.id);
+      res.json({
+        ...client,
+        facebookMarketing: fb,
+        websiteDetails: website,
+        transactions: transactions2
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
