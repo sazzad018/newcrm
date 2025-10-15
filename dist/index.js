@@ -745,7 +745,8 @@ async function registerRoutes(app2) {
   });
   app2.post("/api/clients/:id/facebook-marketing", async (req, res) => {
     try {
-      const validated = insertFacebookMarketingSchema.parse(req.body);
+      const fbData = { ...req.body, clientId: req.params.id };
+      const validated = insertFacebookMarketingSchema.parse(fbData);
       const fb = await storage.updateFacebookMarketing(req.params.id, validated);
       res.json(fb);
     } catch (error) {
@@ -762,7 +763,8 @@ async function registerRoutes(app2) {
   });
   app2.post("/api/clients/:id/website-details", async (req, res) => {
     try {
-      const validated = insertWebsiteDetailsSchema.parse(req.body);
+      const websiteData = { ...req.body, clientId: req.params.id };
+      const validated = insertWebsiteDetailsSchema.parse(websiteData);
       const website = await storage.updateWebsiteDetails(req.params.id, validated);
       res.json(website);
     } catch (error) {

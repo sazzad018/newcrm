@@ -113,6 +113,29 @@ app2.post("/api/clients/:id/topup", async (req, res) => {
 
 **Result:** ✅ Top-up now works perfectly in Replit!
 
+**Additional Route Fixes (October 15, 2025):**
+
+**Problem:** Facebook marketing and website details routes throwing "clientId Required" validation error
+
+**Root Cause:** Same issue as topup - routes were not adding clientId from URL parameter to request body before validation
+
+**Solutions Applied:**
+1. **Facebook Marketing Route Fix (line 750-753):**
+   - Added `clientId: req.params.id` to request body before validation
+   - Route now properly handles daily spend, reach, sales data
+
+2. **Website Details Route Fix (line 768-771):**
+   - Added `clientId: req.params.id` to request body before validation
+   - Route now properly handles hosting credentials, passwords
+
+**Code Pattern Applied:**
+```javascript
+const data = { ...req.body, clientId: req.params.id };
+const validated = schema.parse(data);
+```
+
+**Result:** ✅ All client-specific POST routes now working perfectly!
+
 **Documentation Created:**
 - `সম্পূর্ণ-সমাধান-গাইড.md` - Comprehensive Bengali solution guide
 - `DOWNLOAD-এবং-UPLOAD.md` - Quick download and upload instructions
@@ -120,6 +143,7 @@ app2.post("/api/clients/:id/topup", async (req, res) => {
 - `DATABASE-FIX-টপআপ-সমাধান.md` - Database fix guide for shared hosting
 - `SHARED-HOSTING-UUID-FIX.md` - UUID extension workarounds
 - `FINAL-TOPUP-FIX-COMPLETE.md` - **Complete step-by-step fix for shared hosting**
+- `FACEBOOK-MARKETING-FIX.md` - **Facebook marketing & website details fix guide**
 
 ## Project Architecture
 
