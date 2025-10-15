@@ -983,10 +983,10 @@ async function registerRoutes(app2) {
         return res.status(404).json({ error: "Portal not found" });
       }
       
-      // Fetch all related data for the client (last 10 records for portal)
-      const facebookMarketingRecords = await storage.getAllFacebookMarketing(client.id, 10, 0);
+      // Fetch all related data for the client (last 30 records for portal)
+      const facebookMarketingRecords = await storage.getAllFacebookMarketing(client.id, 30, 0);
       const websiteDetails = await storage.getWebsiteDetails(client.id);
-      const transactions = await storage.getTransactions(client.id, 10, 0);
+      const transactions = await storage.getTransactions(client.id, 30, 0);
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
