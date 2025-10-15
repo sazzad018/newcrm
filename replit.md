@@ -62,10 +62,31 @@ This is a production-ready **Social Ads Expert** application - a comprehensive c
 - Safe client name rendering in invoice list
 - 4 new functions: `fetchClientById()`, `enrichInvoiceWithClient()`, `enrichInvoices()`, `getInvoiceClientName()`
 
+**Database Schema Fix (October 15, 2025):**
+**Problem:** Top-up not adding amount to balance - transactions not saving to database
+**Root Cause:** UUID auto-generation function was missing from database tables
+**Solution Applied (Replit):**
+- Enabled `uuid-ossp` PostgreSQL extension
+- Set default `uuid_generate_v4()` for ID columns in 4 tables:
+  - `transactions` - For top-ups and expenses
+  - `invoices` - For invoice creation
+  - `facebook_marketing` - For FB marketing metrics
+  - `website_details` - For website credentials
+
+**SQL Commands Used:**
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+ALTER TABLE transactions ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+ALTER TABLE invoices ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+ALTER TABLE facebook_marketing ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+ALTER TABLE website_details ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+```
+
 **Documentation Created:**
 - `সম্পূর্ণ-সমাধান-গাইড.md` - Comprehensive Bengali solution guide
 - `DOWNLOAD-এবং-UPLOAD.md` - Quick download and upload instructions
 - `FINAL-FIX-সম্পূর্ণ-গাইড.md` - Complete final fix guide with all solutions
+- `DATABASE-FIX-টপআপ-সমাধান.md` - Database fix guide for shared hosting
 
 ## Project Architecture
 
