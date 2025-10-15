@@ -742,11 +742,19 @@ async function registerRoutes(app2) {
       const fbRecords = await storage.getAllFacebookMarketing(client.id, 10, 0);
       const website = await storage.getWebsiteDetails(client.id);
       const transactions2 = await storage.getTransactions(client.id, 10, 0);
+      
+      // Format transactions with +/- signs
+      const formattedTransactions = transactions2.map(t => ({
+        ...t,
+        formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
+        displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
+      }));
+      
       res.json({
         ...client,
         facebookMarketing: fbRecords,
         websiteDetails: website,
-        transactions: transactions2
+        transactions: formattedTransactions
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -858,7 +866,15 @@ async function registerRoutes(app2) {
       const limit = parseInt(req.query.limit) || 10;
       const offset = parseInt(req.query.offset) || 0;
       const transactions2 = await storage.getTransactions(req.params.id, limit, offset);
-      res.json(transactions2);
+      
+      // Add formatted amount with +/- sign for display
+      const formattedTransactions = transactions2.map(t => ({
+        ...t,
+        formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
+        displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
+      }));
+      
+      res.json(formattedTransactions);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -993,7 +1009,9 @@ async function registerRoutes(app2) {
         } : null,
         transactions: (transactions || []).map(t => ({
           ...t,
-          created_at: t.createdAt // snake_case alias
+          created_at: t.createdAt, // snake_case alias
+          formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
+          displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
         })),
         invoices: invoices || [],
         offers: (activeOffers || []).map(o => ({
