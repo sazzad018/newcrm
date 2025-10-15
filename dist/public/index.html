@@ -13,5 +13,44 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Auto-convert URLs to clickable links in quick messages
+      function makeLinksClickable() {
+        // URL pattern matching
+        const urlPattern = /(https?:\/\/[^\s]+)/g;
+        
+        // Find all text elements that might contain quick messages
+        const elements = document.querySelectorAll('p, div, span, textarea, pre');
+        
+        elements.forEach(element => {
+          // Skip if already processed or if it's an input/textarea
+          if (element.hasAttribute('data-linkified') || element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+            return;
+          }
+          
+          const text = element.textContent;
+          if (text && urlPattern.test(text)) {
+            const newHTML = text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">$1</a>');
+            element.innerHTML = newHTML;
+            element.setAttribute('data-linkified', 'true');
+          }
+        });
+      }
+      
+      // Run on page load
+      window.addEventListener('load', () => {
+        makeLinksClickable();
+        
+        // Watch for DOM changes (React re-renders)
+        const observer = new MutationObserver(() => {
+          makeLinksClickable();
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      });
+    </script>
   </body>
 </html>
