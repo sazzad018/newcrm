@@ -46,3 +46,62 @@ The application features full dark/light theme support and provides a complete B
     -   `pdfkit` (PDF generation library)
     -   `express-session` (Session management middleware)
     -   `zod` (Schema validation library, used for data parsing)
+## Recent Fixes (October 15, 2025)
+
+### Issue 1: Top-up Functionality Not Working
+**Problem:** Top-up feature failing in shared hosting due to UUID generation differences
+**Solution:** 
+- Database: Changed from `uuid-ossp` extension to `pgcrypto` (gen_random_uuid)
+- Backend: Added missing `/api/clients/:id/topup` route (line 780-797)
+
+### Issue 2: Facebook Marketing & Website Details 400 Errors
+**Problems:** 
+1. "clientId Required" validation error
+2. "Expected date, received string" validation error
+
+**Solutions:**
+1. Added clientId from URL params to request body (line 750-753, 768-771)
+2. Added date string transformation in schema (line 411-416)
+
+### Issue 3: Data Saving But Not Displaying
+**Problems:**
+1. Client API returning incomplete data
+2. Facebook marketing as object instead of array (frontend expects array)
+
+**Solutions:**
+1. Enhanced Client API to include all related data (line 711-729)
+2. Changed `facebookMarketing: fb` → `facebookMarketing: fb ? [fb] : []` for array format
+
+### Issue 4: Client Portal TypeError
+**Problem:** `TypeError: Cannot read properties of undefined (reading 'split')` when opening Client Portal
+
+**Root Cause:** Portal API missing `websiteDetails` field - frontend tries to access undefined field
+
+**Solution (Line 909-927):**
+```javascript
+// Portal API now includes all required fields:
+app2.get("/api/portal/:portalId", async (req, res) => {
+  const client = await storage.getClientByPortalId(req.params.portalId);
+  const fb = await storage.getFacebookMarketing(client.id);
+  const website = await storage.getWebsiteDetails(client.id);  // Added
+  const transactions2 = await storage.getTransactions(client.id);
+  res.json({
+    client,
+    facebookMarketing: fb ? [fb] : [],  // Array format
+    websiteDetails: website,  // Added
+    transactions: transactions2
+  });
+});
+```
+
+## Files Modified Summary
+- `dist/index.js` - All backend route and validation fixes
+- `shared/schema.ts` - Date validation schema fix
+
+## Documentation Created
+- `PORTAL-ERROR-FIX.md` - Client Portal error fix guide
+- `DISPLAY-FIX-সম্পূর্ণ-গাইড.md` - Display issue fix guide  
+- `FACEBOOK-MARKETING-FIX.md` - FB marketing & website details fix
+- `FINAL-TOPUP-FIX-COMPLETE.md` - Top-up fix guide
+- `SHARED-HOSTING-UUID-FIX.md` - UUID fix for shared hosting
+- `DATABASE-FIX-টপআপ-সমাধান.md` - Database fix guide

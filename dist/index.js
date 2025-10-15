@@ -910,10 +910,12 @@ async function registerRoutes(app2) {
         return res.status(404).json({ error: "Portal not found" });
       }
       const fb = await storage.getFacebookMarketing(client.id);
+      const website = await storage.getWebsiteDetails(client.id);
       const transactions2 = await storage.getTransactions(client.id);
       res.json({
         client,
         facebookMarketing: fb ? [fb] : [],
+        websiteDetails: website,
         transactions: transactions2
       });
     } catch (error) {
