@@ -25,9 +25,10 @@ The application features full dark/light theme support and provides a complete B
 2.  **Financial Tracking**: Manages client balances, including top-ups and expenses.
 3.  **Facebook Marketing Integration**: Tracks daily spend, reach, and sales metrics for Facebook ad campaigns.
 4.  **Invoice Generation**: Generates PDF invoices with support for Bengali fonts.
-5.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
-6.  **Tagging System**: Enables organization of clients using custom tags.
-7.  **Multi-language Support**: Full UI support for Bengali language.
+5.  **Client Portal**: Each client receives a unique portal link (auto-generated UUID) for read-only access to their data including balance, transactions, invoices, Facebook marketing metrics, website details, and offers.
+6.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
+7.  **Tagging System**: Enables organization of clients using custom tags.
+8.  **Multi-language Support**: Full UI support for Bengali language.
 
 ### System Design Choices
 - **Directory Structure**: Organized with a `dist/` folder for built output, `shared/` for common schemas, and standard project files.
@@ -124,30 +125,51 @@ const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_
 - ✅ Browser console shows no JavaScript errors
 - ⚠️ Portal page requires external browser testing due to screenshot tool limitations with SPA routing
 
-### Issue 6: Portal Feature Removal (October 15, 2025)
-**Decision:** User requested complete removal of Portal feature from application
+### Issue 6: Portal Feature Re-implementation (October 15, 2025)
+**Decision:** User requested Portal feature with improved design after initial removal
 
-**Changes Made:**
-1. **Database Schema (shared/schema.ts):**
-   - Removed `portalId` field from clients table definition
-   - Removed `portalId` from insertClientSchema omit list
+**Implementation:**
+1. **Database Schema (shared/schema.ts & dist/index.js):**
+   - Added `portalId` column to clients table with UUID auto-generation
+   - Uses `gen_random_uuid()` for automatic unique portal ID generation
+   - Updated insertClientSchema to omit portalId (auto-generates on create)
 
-2. **Backend API (dist/index.js):**
-   - Completely removed `/api/portal/:portalId` route (~120 lines)
-   - Removed `getClientByPortalId()` storage method
-   - Removed portalId generation from `createClient()` method
-   - Cleaned up all hardcoded portalId references in compiled code
+2. **Backend Storage (dist/index.js):**
+   - Added `getClientByPortalId(portalId)` method to fetch client by portal ID
+   - Modified `createClient()` to auto-generate portal_id on client creation
 
-3. **Database Migration:**
-   - Dropped `portal_id` column from clients table using SQL
+3. **Portal API Route (dist/index.js line 910-947):**
+   - Created `/api/portal/:portalId` endpoint
+   - Returns comprehensive client data:
+     * Client info (name, email, phone, balance, status, createdAt)
+     * Facebook marketing data (array format)
+     * Website details (with null safety for all fields)
+     * Transactions history
+     * Invoices
+     * Active offers (with validUntil default to 30 days future)
 
-**Verification:**
-- ✅ Server running without errors
-- ✅ Main application functioning normally
-- ✅ No "column does not exist" errors
-- ✅ Portal API route no longer exists (returns frontend SPA catch-all)
+4. **Database Migration:**
+   - Added `portal_id` column to clients table with UUID default
+   - All existing clients auto-received unique portal_id values
+   - Executed: `ALTER TABLE clients ADD COLUMN portal_id TEXT DEFAULT gen_random_uuid();`
 
-**Note:** Frontend may still contain Portal UI components, but without backend API support, the feature is effectively disabled.
+**Testing Results:**
+- ✅ Existing clients have unique portal_id auto-generated
+- ✅ New clients auto-generate portal_id on creation
+- ✅ Portal API returns complete client data correctly
+- ✅ Portal links work: `/portal/{portal_id}`
+- ✅ Empty data cases handled properly (returns empty arrays/null)
+- ✅ Data population cases return correct array formats
+
+**Example Portal Link:**
+- Client: "Portal Test Client"
+- Portal ID: `00a3a533-a00c-49ae-b333-4ffeda6a6a1c`
+- Portal URL: `/portal/00a3a533-a00c-49ae-b333-4ffeda6a6a1c`
+
+**Security:**
+- Portal IDs are UUIDs (hard to guess, cryptographically random)
+- No authentication required (intended for client self-service)
+- Read-only access (clients can only view their data)
 
 ## Files Modified Summary
 - `dist/index.js` - All backend route and validation fixes
