@@ -497,7 +497,8 @@ var PgStorage = class {
   // Clients
   async createClient(data) {
     const id = generateUUID();
-    const [client] = await db.insert(clients).values({ ...data, id }).returning();
+    const portalId = generateUUID();
+    const [client] = await db.insert(clients).values({ ...data, id, portalId }).returning();
     return client;
   }
   async getClient(id) {
