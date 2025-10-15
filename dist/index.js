@@ -944,7 +944,31 @@ async function registerRoutes(app2) {
         whatsappUsername: website.whatsappUsername || '',
         whatsappPassword: website.whatsappPassword || '',
         otherDetails: website.otherDetails || ''
-      } : null;
+      } : {
+        // Return empty object with default values when website is null
+        // CRITICAL: Include BOTH camelCase AND snake_case for frontend compatibility
+        id: '',
+        clientId: client.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        domainName: '',
+        websiteName: '',
+        websiteUrl: '',
+        websitePassword: '',
+        wordpressUsername: '',
+        wordpressPassword: '',
+        cpanelUsername: '',
+        cpanelPassword: '',
+        nameServer1: '',
+        nameServer2: '',
+        websitePackageName: '',
+        serviceNote: '',
+        whatsappUsername: '',
+        whatsappPassword: '',
+        otherDetails: ''
+      };
       
       const fbWithAliases = fb ? [{ 
         ...fb, 
