@@ -171,6 +171,26 @@ const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_
 - No authentication required (intended for client self-service)
 - Read-only access (clients can only view their data)
 
+### Issue 7: Portal Page TypeError - offers.validUntil null value (October 15, 2025)
+**Problem:** `TypeError: Cannot read properties of undefined (reading 'split')` when accessing Portal page
+
+**Root Cause:** Portal API was returning offers with null `validUntil` field. Frontend code tries to call `validUntil.split('T')` which crashes when validUntil is null.
+
+**Solution Applied (dist/index.js line 942-945):**
+Added null safety mapping for offers to ensure validUntil is never null:
+```javascript
+offers: (activeOffers || []).map(o => ({
+  ...o,
+  validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+}))
+```
+
+**Result:**
+- ✅ Offers with null validUntil now get default date (30 days in future)
+- ✅ Frontend can successfully call .split('T') on validUntil
+- ✅ Portal page renders without errors
+- ✅ Architect reviewed and approved
+
 ## Files Modified Summary
 - `dist/index.js` - All backend route and validation fixes
 - `shared/schema.ts` - Date validation schema fix
