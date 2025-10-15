@@ -524,11 +524,34 @@ var PgStorage = class {
   async createFacebookMarketing(data) {
     const id = generateUUID();
     const [fb] = await db.insert(facebookMarketing).values({ ...data, id }).returning();
+    
+    // Auto-deduct daily spend from client balance
+    if (fb.dailySpend && parseFloat(fb.dailySpend) > 0) {
+      await this.createTransaction({
+        clientId: data.clientId,
+        type: "expense",
+        amount: fb.dailySpend,
+        description: `Facebook Marketing - ${fb.date ? new Date(fb.date).toLocaleDateString('bn-BD') : 'Daily Spend'}`,
+        date: fb.date || new Date()
+      });
+    }
+    
     return fb;
   }
   async getFacebookMarketing(clientId) {
-    const [fb] = await db.select().from(facebookMarketing).where(eq(facebookMarketing.clientId, clientId)).limit(1);
+    const [fb] = await db.select().from(facebookMarketing).where(eq(facebookMarketing.clientId, clientId)).orderBy(desc(facebookMarketing.date)).limit(1);
     return fb;
+  }
+  async getAllFacebookMarketing(clientId, limit = 10, offset = 0) {
+    return db.select().from(facebookMarketing)
+      .where(eq(facebookMarketing.clientId, clientId))
+      .orderBy(desc(facebookMarketing.date))
+      .limit(limit)
+      .offset(offset);
+  }
+  async deleteFacebookMarketing(id) {
+    await db.delete(facebookMarketing).where(eq(facebookMarketing.id, id));
+    return { success: true };
   }
   async updateFacebookMarketing(clientId, data) {
     const existing = await this.getFacebookMarketing(clientId);
@@ -569,8 +592,12 @@ var PgStorage = class {
     }
     return transaction;
   }
-  async getTransactions(clientId) {
-    return db.select().from(transactions).where(eq(transactions.clientId, clientId)).orderBy(desc(transactions.createdAt));
+  async getTransactions(clientId, limit = 10, offset = 0) {
+    return db.select().from(transactions)
+      .where(eq(transactions.clientId, clientId))
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
   async getAllTransactions() {
     return db.select().from(transactions).orderBy(desc(transactions.createdAt));
@@ -712,12 +739,12 @@ async function registerRoutes(app2) {
       if (!client) {
         return res.status(404).json({ error: "Client not found" });
       }
-      const fb = await storage.getFacebookMarketing(client.id);
+      const fbRecords = await storage.getAllFacebookMarketing(client.id, 10, 0);
       const website = await storage.getWebsiteDetails(client.id);
-      const transactions2 = await storage.getTransactions(client.id);
+      const transactions2 = await storage.getTransactions(client.id, 10, 0);
       res.json({
         ...client,
-        facebookMarketing: fb ? [fb] : [],
+        facebookMarketing: fbRecords,
         websiteDetails: website,
         transactions: transactions2
       });
@@ -758,7 +785,7 @@ async function registerRoutes(app2) {
     try {
       const fbData = { ...req.body, clientId: req.params.id };
       const validated = insertFacebookMarketingSchema.parse(fbData);
-      const fb = await storage.updateFacebookMarketing(req.params.id, validated);
+      const fb = await storage.createFacebookMarketing(validated);
       res.json(fb);
     } catch (error) {
       res.status(400).json({ error: error.message });
@@ -766,8 +793,18 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/clients/:id/facebook-marketing", async (req, res) => {
     try {
-      const fb = await storage.getFacebookMarketing(req.params.id);
-      res.json(fb || null);
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = parseInt(req.query.offset) || 0;
+      const fbRecords = await storage.getAllFacebookMarketing(req.params.id, limit, offset);
+      res.json(fbRecords);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  app2.delete("/api/facebook-marketing/:id", async (req, res) => {
+    try {
+      await storage.deleteFacebookMarketing(req.params.id);
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -818,7 +855,9 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/clients/:id/transactions", async (req, res) => {
     try {
-      const transactions2 = await storage.getTransactions(req.params.id);
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = parseInt(req.query.offset) || 0;
+      const transactions2 = await storage.getTransactions(req.params.id, limit, offset);
       res.json(transactions2);
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -914,10 +953,10 @@ async function registerRoutes(app2) {
         return res.status(404).json({ error: "Portal not found" });
       }
       
-      // Fetch all related data for the client
-      const facebookMarketing = await storage.getFacebookMarketing(client.id);
+      // Fetch all related data for the client (last 10 records for portal)
+      const facebookMarketingRecords = await storage.getAllFacebookMarketing(client.id, 10, 0);
       const websiteDetails = await storage.getWebsiteDetails(client.id);
-      const transactions = await storage.getTransactions(client.id);
+      const transactions = await storage.getTransactions(client.id, 10, 0);
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
@@ -943,10 +982,10 @@ async function registerRoutes(app2) {
           created_at: client.createdAt, // snake_case alias for frontend
           portalId: client.portalId
         },
-        facebookMarketing: facebookMarketing ? [{
-          ...facebookMarketing,
-          created_at: facebookMarketing.createdAt // snake_case alias
-        }] : [],
+        facebookMarketing: (facebookMarketingRecords || []).map(fb => ({
+          ...fb,
+          created_at: fb.createdAt // snake_case alias
+        })),
         websiteDetails: websiteDetails ? {
           ...websiteDetails,
           created_at: websiteDetails.createdAt, // snake_case alias
