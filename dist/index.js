@@ -525,15 +525,13 @@ var PgStorage = class {
     const id = generateUUID();
     const [fb] = await db.insert(facebookMarketing).values({ ...data, id }).returning();
     
-    // Auto-deduct daily spend from client balance
+    // Auto-deduct daily spend from client balance (without creating transaction)
     if (fb.dailySpend && parseFloat(fb.dailySpend) > 0) {
-      await this.createTransaction({
-        clientId: data.clientId,
-        type: "expense",
-        amount: fb.dailySpend,
-        description: `Facebook Marketing - ${fb.date ? new Date(fb.date).toLocaleDateString('bn-BD') : 'Daily Spend'}`,
-        date: fb.date || new Date()
-      });
+      const client = await this.getClient(data.clientId);
+      if (client) {
+        const newBalance = (parseFloat(client.balance) || 0) - parseFloat(fb.dailySpend);
+        await this.updateClient(data.clientId, { balance: newBalance.toString() });
+      }
     }
     
     return fb;
@@ -743,11 +741,12 @@ async function registerRoutes(app2) {
       const website = await storage.getWebsiteDetails(client.id);
       const transactions2 = await storage.getTransactions(client.id, 10, 0);
       
-      // Format transactions with +/- signs
-      const formattedTransactions = transactions2.map(t => ({
+      // Filter only top-up transactions and format with + signs
+      const topUpOnly = transactions2.filter(t => t.type === 'top-up');
+      const formattedTransactions = topUpOnly.map(t => ({
         ...t,
-        formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
-        displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
+        formattedAmount: `+${t.amount}`,
+        displayType: 'ব্যালেন্স যোগ'
       }));
       
       res.json({
@@ -867,11 +866,14 @@ async function registerRoutes(app2) {
       const offset = parseInt(req.query.offset) || 0;
       const transactions2 = await storage.getTransactions(req.params.id, limit, offset);
       
-      // Add formatted amount with +/- sign for display
-      const formattedTransactions = transactions2.map(t => ({
+      // Filter only top-up transactions (not expenses from FB marketing)
+      const topUpOnly = transactions2.filter(t => t.type === 'top-up');
+      
+      // Add formatted amount with + sign for display
+      const formattedTransactions = topUpOnly.map(t => ({
         ...t,
-        formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
-        displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
+        formattedAmount: `+${t.amount}`,
+        displayType: 'ব্যালেন্স যোগ'
       }));
       
       res.json(formattedTransactions);
@@ -1007,12 +1009,14 @@ async function registerRoutes(app2) {
           created_at: websiteDetails.createdAt, // snake_case alias
           updated_at: websiteDetails.updatedAt  // snake_case alias
         } : null,
-        transactions: (transactions || []).map(t => ({
-          ...t,
-          created_at: t.createdAt, // snake_case alias
-          formattedAmount: t.type === 'top-up' ? `+${t.amount}` : `-${t.amount}`,
-          displayType: t.type === 'top-up' ? 'ব্যালেন্স যোগ' : 'খরচ'
-        })),
+        transactions: (transactions || [])
+          .filter(t => t.type === 'top-up')
+          .map(t => ({
+            ...t,
+            created_at: t.createdAt, // snake_case alias
+            formattedAmount: `+${t.amount}`,
+            displayType: 'ব্যালেন্স যোগ'
+          })),
         invoices: invoices || [],
         offers: (activeOffers || []).map(o => ({
           ...o,
