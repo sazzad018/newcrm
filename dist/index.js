@@ -905,6 +905,11 @@ async function registerRoutes(app2) {
     }
   });
   app2.get("/api/portal/:portalId", async (req, res) => {
+    // CRITICAL: Force no-cache to prevent browser caching old API responses
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     try {
       const client = await storage.getClientByPortalId(req.params.portalId);
       if (!client) {
