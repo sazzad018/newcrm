@@ -234,7 +234,7 @@ import { pgTable, text, varchar, decimal, timestamp, jsonb, integer } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 var clients = pgTable("clients", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
@@ -244,11 +244,11 @@ var clients = pgTable("clients", {
   category: text("category").notNull().default("normal"),
   // normal, website-needed, business-plan-needed, final
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
-  portalId: varchar("portal_id").unique().default(sql`gen_random_uuid()`),
+  portalId: varchar("portal_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var facebookMarketing = pgTable("facebook_marketing", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   date: timestamp("date").notNull().defaultNow(),
   dailySpend: decimal("daily_spend", { precision: 10, scale: 2 }).default("0"),
@@ -259,7 +259,7 @@ var facebookMarketing = pgTable("facebook_marketing", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var websiteDetails = pgTable("website_details", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   websiteName: text("website_name"),
   websiteUrl: text("website_url"),
@@ -279,7 +279,7 @@ var websiteDetails = pgTable("website_details", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 var transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
   // "topup" or "expense"
@@ -289,7 +289,7 @@ var transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var invoices = pgTable("invoices", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   invoiceNumber: text("invoice_number").notNull().unique(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -315,20 +315,20 @@ var invoices = pgTable("invoices", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var tags = pgTable("tags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   name: text("name").notNull().unique(),
   color: text("color").notNull().default("#6B7280"),
   // hex color code
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var clientTags = pgTable("client_tags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   tagId: varchar("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var offers = pgTable("offers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   validUntil: timestamp("valid_until"),
@@ -338,7 +338,7 @@ var offers = pgTable("offers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 var campaignTitles = pgTable("campaign_titles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   clientName: text("client_name").notNull(),
   budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
   endDate: timestamp("end_date").notNull(),
@@ -346,7 +346,7 @@ var campaignTitles = pgTable("campaign_titles", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var quickMessages = pgTable("quick_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   category: text("category").default("general"),
