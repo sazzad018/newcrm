@@ -716,7 +716,7 @@ async function registerRoutes(app2) {
       const transactions2 = await storage.getTransactions(client.id);
       res.json({
         ...client,
-        facebookMarketing: fb,
+        facebookMarketing: fb ? [fb] : [],
         websiteDetails: website,
         transactions: transactions2
       });

@@ -1,339 +1,48 @@
 # Social Ads Expert - Client Management System
 
 ## Overview
-This is a production-ready **Social Ads Expert** application - a comprehensive client management system for Facebook marketing agencies. The application supports Bengali language, client management, financial tracking, Facebook marketing metrics, invoice generation with PDF support, and a client portal.
-
-## Current State
-- ✅ **Production Build**: The application is pre-built and production-ready
-- ✅ **Database**: PostgreSQL database configured with all tables and schemas
-- ✅ **Server**: Express server running on port 5000
-- ✅ **Frontend**: Built React frontend with Bengali language support
-- ✅ **Deployment**: Configured for Replit autoscale deployment
-
-## Recent Changes (October 14, 2025)
-
-### Initial Setup:
-- Installed Node.js 20 and PostgreSQL modules
-- Created PostgreSQL database with complete schema from database.sql
-- Configured environment secrets (DATABASE_URL, SESSION_SECRET)
-- Installed production npm dependencies
-- Configured workflow to run Express server on port 5000
-- Verified application functionality (Bengali text rendering correctly, UI responsive)
-- Configured deployment settings for autoscale
-
-### Critical Bug Fixes (Frontend):
-**Problem:** Pre-built JavaScript bundle was missing utility functions causing:
-- White screen on client view (formatNumber undefined)
-- Top-up not adding amount to balance (parseNumber undefined)
-- Invoice creation errors (Cannot read properties of undefined)
-
-**Solution Applied:** Extended JavaScript fixes in `dist/public/assets/index-CqymNPEV.js` (623 KB)
-
-**11 Functions Added:**
-1. **Extended Utility Functions (6):**
-   - `formatNumber()` - Format numbers with decimals and commas
-   - `parseNumber()` - Parse string to number safely
-   - `calculateBalance()` - Calculate balance from transactions
-   - `formatDate()` - Format dates for display
-   - `formatCurrency()` - Format amounts with currency symbol (৳)
-   - `calculateInvoiceTotal()` - Calculate invoice totals with discount/VAT
-
-2. **Invoice Safety Functions (5):**
-   - `safeGetClientName()` - Safely access client name
-   - `safeGetClient()` - Get client data with defaults
-   - `safeGetLineItems()` - Handle line items array safely
-   - `safeCalculateLineItemAmount()` - Safe amount calculation
-   - `safeGetInvoiceData()` - Complete invoice data with defaults
-
-3. **Global Error Prevention:**
-   - Array.map() patching for safe iteration
-   - Global error handler for undefined property access
-   - Promise rejection handler
-   - safeAccess() utility function
-
-**Files Updated:**
-- `dist/public/assets/index-CqymNPEV.js` - 627 KB (with all fixes including invoice list fix)
-
-**Additional Fix Applied (Invoice List):**
-**Problem:** Invoice list was not displaying - client data was missing in API response
-**Solution:** Added intelligent client data fetching system:
-- Auto-fetch client data for invoices (with caching)
-- Intercept invoice API calls and enrich with client data
-- Safe client name rendering in invoice list
-- 4 new functions: `fetchClientById()`, `enrichInvoiceWithClient()`, `enrichInvoices()`, `getInvoiceClientName()`
-
-**Top-up Critical Bugs Fixed (October 15, 2025):**
-
-**Problem:** Top-up not working - amount not adding to balance
-
-**Root Causes Identified:**
-1. ❌ **Database UUID Missing:** pgcrypto extension not enabled, gen_random_uuid() defaults not set
-2. ❌ **Backend Route Missing:** `/api/clients/:id/topup` endpoint completely missing from backend code
-
-**Solutions Applied (Replit - DONE ✅):**
-
-1. **Database Fix:**
-   - Enabled `pgcrypto` extension (matches schema requirement)
-   - Set default `gen_random_uuid()` for 4 tables:
-     - `transactions` - For top-ups and expenses
-     - `invoices` - For invoice creation
-     - `facebook_marketing` - For FB marketing metrics
-     - `website_details` - For website credentials
-
-2. **Backend Route Fix:**
-   - Added missing `/api/clients/:id/topup` endpoint to `dist/index.js` (line 783-799)
-   - Route properly handles amount, description, and creates transaction
-   - Automatically updates client balance using "top-up" type
-
-**SQL Commands Used:**
-```sql
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-ALTER TABLE transactions ALTER COLUMN id SET DEFAULT gen_random_uuid();
-ALTER TABLE invoices ALTER COLUMN id SET DEFAULT gen_random_uuid();
-ALTER TABLE facebook_marketing ALTER COLUMN id SET DEFAULT gen_random_uuid();
-ALTER TABLE website_details ALTER COLUMN id SET DEFAULT gen_random_uuid();
-```
-
-**Backend Code Added (dist/index.js line 783-799):**
-```javascript
-app2.post("/api/clients/:id/topup", async (req, res) => {
-  const { amount, description } = req.body;
-  const clientId = req.params.id;
-  const transactionData = {
-    clientId,
-    type: "top-up",
-    amount: amount.toString(),
-    description: description || "Top-up",
-    date: new Date()
-  };
-  const transaction = await storage.createTransaction(transactionData);
-  res.json(transaction);
-});
-```
-
-**Result:** ✅ Top-up now works perfectly in Replit!
-
-**Additional Route Fixes (October 15, 2025):**
-
-**Problem:** Facebook marketing and website details routes throwing validation errors:
-1. "clientId Required" - 400 Bad Request
-2. "Expected date, received string" - 400 Bad Request
-
-**Root Causes:**
-1. Routes were not adding clientId from URL parameter to request body before validation
-2. Schema validation missing date string transformation (frontend sends string, backend expects Date)
-
-**Solutions Applied:**
-
-1. **Facebook Marketing Route Fix (line 750-753):**
-   - Added `clientId: req.params.id` to request body before validation
-   - Route now properly handles daily spend, reach, sales data
-
-2. **Facebook Marketing Schema Fix (line 411-416):**
-   - Added `.extend({ date: z.coerce.date().optional() })` to schema
-   - Date strings now automatically converted to Date objects
-   
-3. **Website Details Route Fix (line 768-771):**
-   - Added `clientId: req.params.id` to request body before validation
-   - Route now properly handles hosting credentials, passwords
-
-**Code Patterns Applied:**
-```javascript
-// Route fix
-const data = { ...req.body, clientId: req.params.id };
-const validated = schema.parse(data);
-
-// Schema fix
-var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
-  id: true,
-  createdAt: true
-}).extend({
-  date: z.coerce.date().optional()
-});
-```
-
-**Result:** ✅ All client-specific POST routes now working perfectly!
-
-**Files Modified:**
-- `dist/index.js` - Route handlers + schema validation (line 411-416, 750-753, 768-771)
-- `shared/schema.ts` - Facebook marketing schema (line 206-211)
-
-**Display Issue Fixed (October 15, 2025):**
-
-**Problem:** Records saving successfully but not displaying in UI (Facebook marketing, website details, transactions)
-
-**Root Cause:** Client API (`/api/clients/:id`) was only returning basic client info - missing facebookMarketing, websiteDetails, and transactions data
-
-**Solution Applied (Line 711-729):**
-```javascript
-// Client API now includes all related data
-app2.get("/api/clients/:id", async (req, res) => {
-  const client = await storage.getClient(req.params.id);
-  const fb = await storage.getFacebookMarketing(client.id);
-  const website = await storage.getWebsiteDetails(client.id);
-  const transactions2 = await storage.getTransactions(client.id);
-  res.json({
-    ...client,
-    facebookMarketing: fb,
-    websiteDetails: website,
-    transactions: transactions2
-  });
-});
-```
-
-**Result:** ✅ All data now displays correctly - Facebook marketing, website details, and transactions all visible in UI!
-
-**Files Modified:**
-- `dist/index.js` - Client API route (line 711-729)
-
-**Documentation Created:**
-- `সম্পূর্ণ-সমাধান-গাইড.md` - Comprehensive Bengali solution guide
-- `DOWNLOAD-এবং-UPLOAD.md` - Quick download and upload instructions
-- `FINAL-FIX-সম্পূর্ণ-গাইড.md` - Complete final fix guide with all solutions
-- `DATABASE-FIX-টপআপ-সমাধান.md` - Database fix guide for shared hosting
-- `SHARED-HOSTING-UUID-FIX.md` - UUID extension workarounds
-- `FINAL-TOPUP-FIX-COMPLETE.md` - Complete step-by-step fix for shared hosting
-- `FACEBOOK-MARKETING-FIX.md` - Facebook marketing & website details fix guide
-- `DISPLAY-FIX-সম্পূর্ণ-গাইড.md` - **Display issue fix - Records now visible in UI**
-
-## Project Architecture
-
-### Technology Stack
-- **Backend**: Node.js + Express
-- **Frontend**: React (pre-built in dist/public/)
-- **Database**: PostgreSQL (Neon-backed)
-- **ORM**: Drizzle ORM
-- **PDF Generation**: PDFKit with Bengali font support
-- **Session Management**: express-session with PostgreSQL store
-
-### Directory Structure
-```
-production-package/
-├── dist/                    # Built application (production-ready)
-│   ├── index.js            # Bundled Express server
-│   └── public/             # Built frontend static files
-├── shared/                  # Shared TypeScript schemas
-│   └── schema.ts           # Drizzle schema definitions
-├── package.json            # Production dependencies only
-├── database.sql            # PostgreSQL schema creation script
-└── DEPLOY-INSTRUCTIONS.md  # Detailed deployment guide
-```
-
-### Database Schema
-The application uses the following tables:
-- **clients**: Main client information with portal access
-- **facebook_marketing**: Daily Facebook ad metrics per client
-- **website_details**: Website and hosting credentials
-- **transactions**: Financial transactions (top-ups, expenses)
-- **invoices**: Invoice generation with PDF support
-- **tags**: Custom labels for clients
-- **client_tags**: Many-to-many relationship for client tagging
-- **offers**: Promotional offers visible on client portal
-- **campaign_titles**: Generated Facebook campaign titles
-- **quick_messages**: Saved messages for quick access
-
-### Key Features
-1. **Client Management**: Track client information, status, and categories
-2. **Financial Tracking**: Balance management with top-ups and expenses
-3. **Facebook Marketing**: Daily spend, reach, and sales metrics
-4. **Invoice Generation**: PDF invoices with Bengali font support
-5. **Client Portal**: Unique portal access for each client
-6. **Quick Messages**: Saved payment details, addresses, and contacts
-7. **Tagging System**: Organize clients with custom tags
-8. **Dark Mode**: Full dark/light theme support
-9. **Bengali Language**: Complete Bengali language UI support
-
-### Environment Configuration
-The application uses the following environment variables (managed as secrets):
-- `DATABASE_URL`: PostgreSQL connection string (auto-configured)
-- `SESSION_SECRET`: Session encryption key (auto-generated)
-- `NODE_ENV`: Set to "production"
-- `PORT`: Server port (5000)
-
-### Workflow Configuration
-- **Server Workflow**: Runs `NODE_ENV=production PORT=5000 node dist/index.js`
-- **Port**: 5000 (webview output)
-- **Output**: Web interface with Bengali text support
-
-### Deployment
-- **Type**: Autoscale (stateless web application)
-- **Command**: `node dist/index.js`
-- **Requirements**: Node.js 18+ and PostgreSQL
-
-### Database Management
-- **Schema Updates**: Run `npm run db:push` to sync schema changes
-- **Force Push**: Use `npm run db:push --force` if data-loss warnings appear
-- **Never**: Manually write SQL migrations
-- **Schema File**: All models defined in `shared/schema.ts`
-
-## Important Notes
-
-### Pre-built Package
-This is a **pre-built production package** - no build step required:
-- Frontend is already compiled in `dist/public/`
-- Backend is bundled in `dist/index.js`
-- All assets and fonts are included
-- Just upload and run!
-
-### Bengali Font Support
-- PDF generation uses Noto Sans Bengali fonts
-- Fonts are bundled in `dist/fonts/`
-- Both regular and bold weights supported
-- Automatic font selection for Bengali characters
-
-### Security
-- Environment secrets managed by Replit
-- Session data stored in PostgreSQL
-- Database credentials auto-configured
-- SSL/TLS enabled for remote database connections
-
-### Client Portal
-Each client gets a unique portal URL:
-- Format: `/portal/[PORTAL_ID]`
-- Portal ID auto-generated on client creation
-- Clients can view their balance, invoices, and offers
+This project is a production-ready **Social Ads Expert** application, a comprehensive client management system designed for Facebook marketing agencies. Its primary purpose is to streamline client operations, financial tracking, and marketing performance monitoring. Key capabilities include multi-language support (Bengali), robust client management, detailed financial tracking, integration of Facebook marketing metrics, invoice generation with PDF support, and a dedicated client portal. The business vision is to provide agencies with a powerful, all-in-one platform to efficiently manage their clients and services, enhancing productivity and client satisfaction.
 
 ## User Preferences
 - None specified yet
 
-## Development Guide
+## System Architecture
 
-### Starting the Server
-The server starts automatically via the configured workflow. To manually start:
-```bash
-NODE_ENV=production PORT=5000 node dist/index.js
-```
+### UI/UX Decisions
+The application features full dark/light theme support and provides a complete Bengali language UI. PDF generation for invoices also includes Bengali font support using Noto Sans Bengali.
 
-### Database Migrations
-Never manually write migrations. Use Drizzle's push command:
-```bash
-npm run db:push         # Normal push
-npm run db:push --force # Force push (for data-loss warnings)
-```
+### Technical Implementations
+- **Backend**: Developed with Node.js and Express.
+- **Frontend**: A pre-built React application, located in `dist/public/`.
+- **Database**: Utilizes PostgreSQL, specifically configured for Neon-backed deployment.
+- **ORM**: Drizzle ORM is used for database interactions.
+- **PDF Generation**: Implemented using PDFKit with bundled Bengali font support.
+- **Session Management**: `express-session` is used with a PostgreSQL store for session persistence.
+- **Pre-built Package**: The application is provided as a pre-built production package, meaning no build step is required for deployment; all frontend and backend assets are pre-compiled and ready to run.
 
-### Updating the Application
-1. Make changes to source code (if available)
-2. Build the project (if needed)
-3. Replace `dist/` folder
-4. Restart the workflow
+### Feature Specifications
+1.  **Client Management**: Comprehensive tools for tracking client information, status, and categorization.
+2.  **Financial Tracking**: Manages client balances, including top-ups and expenses.
+3.  **Facebook Marketing Integration**: Tracks daily spend, reach, and sales metrics for Facebook ad campaigns.
+4.  **Invoice Generation**: Generates PDF invoices with support for Bengali fonts.
+5.  **Client Portal**: Provides each client with a unique, secure portal to view their balance, invoices, and offers.
+6.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
+7.  **Tagging System**: Enables organization of clients using custom tags.
+8.  **Multi-language Support**: Full UI support for Bengali language.
 
-### Troubleshooting
-- **Database Connection Issues**: Check DATABASE_URL secret
-- **Port Conflicts**: Ensure port 5000 is available
-- **Bengali Font Issues**: Verify fonts exist in `dist/fonts/`
-- **Session Issues**: Check SESSION_SECRET is configured
+### System Design Choices
+- **Directory Structure**: Organized with a `dist/` folder for built output, `shared/` for common schemas, and standard project files.
+- **Environment Configuration**: Uses `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV`, and `PORT` environment variables.
+- **Deployment**: Designed for Replit autoscale deployment, running on Node.js 18+ with PostgreSQL.
+- **Database Schema**: Includes tables for `clients`, `facebook_marketing`, `website_details`, `transactions`, `invoices`, `tags`, `client_tags`, `offers`, `campaign_titles`, and `quick_messages`.
+- **Security**: Relies on Replit for environment secret management, stores session data in PostgreSQL, and uses SSL/TLS for remote database connections.
 
-## Additional Resources
-- `README.md`: Quick start guide
-- `DEPLOY-INSTRUCTIONS.md`: Step-by-step deployment guide (for cPanel)
-- `database.sql`: Complete database schema with indexes
-- `SSL-FIX-NOTES.md`: SSL connection troubleshooting
-- `WEBSOCKET-FIX-README.md`: WebSocket configuration notes
-
-## Next Steps
-The application is fully configured and ready to use. You can:
-1. Start adding clients through the UI
-2. Create invoices and generate PDFs
-3. Track Facebook marketing metrics
-4. Share client portal links
-5. Deploy to production using the publish button
+## External Dependencies
+-   **Database**: PostgreSQL (specifically configured for Neon)
+-   **NPM Packages**:
+    -   `express` (Node.js web framework)
+    -   `pgcrypto` (PostgreSQL extension for UUID generation)
+    -   `drizzle-orm` (ORM for PostgreSQL)
+    -   `pdfkit` (PDF generation library)
+    -   `express-session` (Session management middleware)
+    -   `zod` (Schema validation library, used for data parsing)

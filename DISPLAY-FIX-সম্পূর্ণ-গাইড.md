@@ -14,7 +14,9 @@ Facebook marketing, website details, এবং transactions record **save হচ
 
 ## 🔍 Root Cause (মূল কারণ)
 
-### API Response এ Data Missing ছিল:
+### দুটি সমস্যা ছিল:
+
+#### Problem 1: API Response এ Data Missing ছিল
 
 **Client Details API** (`/api/clients/:id`) শুধু basic client info return করছিল:
 
@@ -56,11 +58,39 @@ app2.get("/api/portal/:portalId", async (req, res) => {
 
 Frontend **Client Details page** load করার সময় `/api/clients/:id` call করে - যেখানে facebookMarketing data নাই। তাই data থাকলেও display হয় না।
 
+#### Problem 2: Array vs Object Mismatch ⚠️
+
+এমনকি data include করার পরেও Facebook marketing display হচ্ছিল না কারণ:
+
+**Frontend Code (Rendering Logic):**
+```javascript
+// Facebook Marketing (expects array):
+{Array.isArray(facebookMarketing) && facebookMarketing.map(fb => 
+  <div>{fb.dailySpend}</div>
+)}  // ❌ Fails for object!
+
+// Website Details (works with object):
+{websiteDetails && (
+  <div>{websiteDetails.websiteName}</div>
+)}  // ✅ Works!
+```
+
+**Backend Response (was sending object):**
+```json
+{
+  "facebookMarketing": {  // ❌ Object, not array!
+    "dailySpend": "50.00"
+  }
+}
+```
+
+Frontend `Array.isArray()` check fail করে তাই render হয় না।
+
 ---
 
 ## ✅ Replit এ Fix করা হয়েছে (DONE)
 
-### Client API তে সব data include করা হয়েছে:
+### Fix 1: Client API তে সব data include করা হয়েছে
 
 **After (Fixed - Line 711-729):**
 ```javascript
@@ -89,19 +119,45 @@ app2.get("/api/clients/:id", async (req, res) => {
 });
 ```
 
+### Fix 2: Facebook Marketing Array Format (Line 722)
+
+**Critical Fix - Object → Array:**
+
+**Before (Problem):**
+```javascript
+res.json({
+  ...client,
+  facebookMarketing: fb,  // ❌ Object - Array.isArray() fails!
+  websiteDetails: website,
+  transactions: transactions2
+});
+```
+
+**After (Fixed):**
+```javascript
+res.json({
+  ...client,
+  facebookMarketing: fb ? [fb] : [],  // ✅ Array - rendering works!
+  websiteDetails: website,
+  transactions: transactions2
+});
+```
+
 ### Fixed Response (এখন):
 ```json
 {
   "id": "...",
   "name": "Test Client",
   "email": "test@example.com",
-  "facebookMarketing": {
-    "id": "...",
-    "dailySpend": "440.00",
-    "reach": 40,
-    "sales": 4440,
-    "date": "2025-10-15T14:27:46.170Z"
-  },
+  "facebookMarketing": [  
+    {
+      "id": "...",
+      "dailySpend": "440.00",
+      "reach": 40,
+      "sales": 4440,
+      "date": "2025-10-15T14:27:46.170Z"
+    }
+  ],
   "websiteDetails": {
     "hostingProvider": "...",
     "username": "..."
@@ -195,15 +251,22 @@ app2.get("/api/clients/:id", async (req, res) => {
 **File Modified:** `dist/index.js`
 **Lines Changed:** 711-729 (Client API route)
 
+**Changes Applied:**
+1. ✅ Client API এ facebookMarketing, websiteDetails, transactions data include করা হয়েছে
+2. ✅ facebookMarketing data array format এ convert করা হয়েছে (line 722)
+3. ✅ Frontend rendering logic এর সাথে compatible করা হয়েছে
+
 **Before:**
 - Client API শুধু client data return করত
-- Frontend আলাদা API calls করত না
+- Facebook marketing object format এ ছিল
+- Frontend Array.isArray() check fail করত
 - Data থাকলেও display হতো না
 
 **After:**
 - Client API সব related data fetch করে
-- Single response এ সব data পাওয়া যায়
-- Frontend automatically display করে
+- Facebook marketing array format এ return হয়
+- Frontend successfully render করে
+- All tabs এ data properly display হয়
 
 ### Database Impact:
 - ❌ কোনো database change নাই
