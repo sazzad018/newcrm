@@ -990,8 +990,9 @@ async function registerRoutes(app2) {
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
-      // Calculate total top-ups (sum of all top-up transactions)
-      const topUpTransactions = transactions.filter(t => t.type === 'top-up');
+      // Calculate total top-ups (sum of ALL top-up transactions, not just last 10)
+      const allTransactions = await storage.getTransactions(client.id, 999999, 0);
+      const topUpTransactions = allTransactions.filter(t => t.type === 'top-up');
       const totalTopUps = topUpTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
       
       // Return comprehensive portal data with null safety and snake_case aliases for frontend
