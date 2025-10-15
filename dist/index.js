@@ -1005,6 +1005,8 @@ async function registerRoutes(app2) {
         companyName: client.companyName,
         balance: client.balance,
         totalTopUps: totalTopUps.toString(),
+        total_topups: totalTopUps.toString(), // snake_case alias
+        totalTopup: totalTopUps.toString(), // singular alias
         // Nested client object (kept for compatibility)
         client: {
           id: client.id,
