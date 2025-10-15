@@ -995,6 +995,10 @@ async function registerRoutes(app2) {
       const topUpTransactions = allTransactions.filter(t => t.type === 'top-up');
       const totalTopUps = topUpTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
       
+      // Calculate total expense (sum of ALL FB marketing daily spend)
+      const allFBMarketing = await storage.getAllFacebookMarketing(client.id, 999999, 0);
+      const totalExpense = allFBMarketing.reduce((sum, fb) => sum + parseFloat(fb.dailySpend || 0), 0);
+      
       // Return comprehensive portal data with null safety and snake_case aliases for frontend
       // Note: Frontend expects name, email, etc. at root level (not just nested in client)
       res.json({
@@ -1007,6 +1011,9 @@ async function registerRoutes(app2) {
         totalTopUps: totalTopUps.toString(),
         total_topups: totalTopUps.toString(), // snake_case alias
         totalTopup: totalTopUps.toString(), // singular alias
+        totalExpense: totalExpense.toString(),
+        total_expense: totalExpense.toString(), // snake_case alias
+        totalCost: totalExpense.toString(), // alternative name
         // Nested client object (kept for compatibility)
         client: {
           id: client.id,
@@ -1016,6 +1023,7 @@ async function registerRoutes(app2) {
           companyName: client.companyName,
           balance: client.balance,
           totalTopUps: totalTopUps.toString(),
+          totalExpense: totalExpense.toString(),
           status: client.status,
           createdAt: client.createdAt,
           created_at: client.createdAt, // snake_case alias for frontend
