@@ -913,18 +913,35 @@ async function registerRoutes(app2) {
       const fb = await storage.getFacebookMarketing(client.id);
       const website = await storage.getWebsiteDetails(client.id);
       const transactions2 = await storage.getTransactions(client.id);
+      const activeOffers = await storage.getActiveOffers();
       
       // Add snake_case aliases for frontend compatibility
       const clientWithAliases = client ? { ...client, created_at: client.createdAt } : null;
-      const websiteWithAliases = website ? { ...website, created_at: website.createdAt, updated_at: website.updatedAt } : null;
+      const websiteWithAliases = website ? { 
+        ...website, 
+        created_at: website.createdAt, 
+        updated_at: website.updatedAt,
+        domainName: website.domainName || '',
+        cpanelUsername: website.cpanelUsername || '',
+        cpanelPassword: website.cpanelPassword || '',
+        nameServer1: website.nameServer1 || '',
+        nameServer2: website.nameServer2 || ''
+      } : null;
       const fbWithAliases = fb ? [{ ...fb, created_at: fb.createdAt }] : [];
       const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_at: t.createdAt }));
+      const offersWithAliases = (activeOffers || []).map(o => ({ 
+        ...o, 
+        created_at: o.createdAt, 
+        updated_at: o.updatedAt,
+        validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Default 30 days if null
+      }));
       
       res.json({
         client: clientWithAliases,
         facebookMarketing: fbWithAliases,
         websiteDetails: websiteWithAliases,
-        transactions: transactionsWithAliases
+        transactions: transactionsWithAliases,
+        offers: offersWithAliases
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -1127,7 +1144,13 @@ app.use((req, res, next) => {
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }));
   app.use("*", (_req, res) => {
     res.sendFile(path2.resolve(distPath, "index.html"));
   });

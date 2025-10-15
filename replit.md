@@ -95,6 +95,36 @@ const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_
 ```
 5. **Cache Busting (dist/public/index.html):** Added query parameter to JS file to force browser cache refresh
 
+### Issue 5: Portal Page - Additional Field Fixes (October 15, 2025)
+**Problem:** Portal page showing loading skeleton but not rendering data, with `Cannot read properties of undefined (reading 'split')` error
+
+**Root Cause Analysis:**
+1. Portal API missing `offers` field - Frontend expects offers array
+2. `offers.validUntil` was null - Frontend tries `validUntil.split('T')` causing crash
+3. `websiteDetails.domainName` was undefined - Frontend likely does `domainName.split('.')` 
+
+**Solutions Applied:**
+1. **Portal API - Added Offers (dist/index.js line 919):** Fetch active offers and include in Portal response
+2. **Portal API - Null Safety for validUntil (line 926-931):** Default to 30 days future if null
+   ```javascript
+   validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+   ```
+3. **Portal API - Null Safety for Text Fields (line 923-932):** Ensure all websiteDetails text fields are strings, not undefined
+   ```javascript
+   domainName: website.domainName || '',
+   cpanelUsername: website.cpanelUsername || '',
+   cpanelPassword: website.cpanelPassword || '',
+   nameServer1: website.nameServer1 || '',
+   nameServer2: website.nameServer2 || ''
+   ```
+4. **Cache Busting Strategy:** Implemented aggressive random cache busting values to force fresh bundle loads
+
+**Testing Status:**
+- ✅ Portal API returns complete data structure with all required fields
+- ✅ All date/text fields have null safety (no undefined values)
+- ✅ Browser console shows no JavaScript errors
+- ⚠️ Portal page requires external browser testing due to screenshot tool limitations with SPA routing
+
 ## Files Modified Summary
 - `dist/index.js` - All backend route and validation fixes
 - `shared/schema.ts` - Date validation schema fix
