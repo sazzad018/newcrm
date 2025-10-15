@@ -915,25 +915,60 @@ async function registerRoutes(app2) {
       const transactions2 = await storage.getTransactions(client.id);
       const activeOffers = await storage.getActiveOffers();
       
-      // Add snake_case aliases for frontend compatibility
-      const clientWithAliases = client ? { ...client, created_at: client.createdAt } : null;
+      // Add snake_case aliases AND ensure all fields exist for frontend compatibility
+      const clientWithAliases = client ? { 
+        ...client, 
+        created_at: client.createdAt,
+        name: client.name || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        companyName: client.companyName || ''
+      } : null;
+      
       const websiteWithAliases = website ? { 
         ...website, 
         created_at: website.createdAt, 
         updated_at: website.updatedAt,
         domainName: website.domainName || '',
+        websiteName: website.websiteName || '',
+        websiteUrl: website.websiteUrl || '',
+        websitePassword: website.websitePassword || '',
+        wordpressUsername: website.wordpressUsername || '',
+        wordpressPassword: website.wordpressPassword || '',
         cpanelUsername: website.cpanelUsername || '',
         cpanelPassword: website.cpanelPassword || '',
         nameServer1: website.nameServer1 || '',
-        nameServer2: website.nameServer2 || ''
+        nameServer2: website.nameServer2 || '',
+        websitePackageName: website.websitePackageName || '',
+        serviceNote: website.serviceNote || '',
+        whatsappUsername: website.whatsappUsername || '',
+        whatsappPassword: website.whatsappPassword || '',
+        otherDetails: website.otherDetails || ''
       } : null;
-      const fbWithAliases = fb ? [{ ...fb, created_at: fb.createdAt }] : [];
-      const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_at: t.createdAt }));
+      
+      const fbWithAliases = fb ? [{ 
+        ...fb, 
+        created_at: fb.createdAt,
+        date: fb.date || new Date().toISOString(),
+        campaignDetails: fb.campaignDetails || '',
+        adAccountId: fb.adAccountId || ''
+      }] : [];
+      
+      const transactionsWithAliases = (transactions2 || []).map(t => ({ 
+        ...t, 
+        created_at: t.createdAt,
+        type: t.type || '',
+        description: t.description || '',
+        date: t.date || new Date().toISOString()
+      }));
+      
       const offersWithAliases = (activeOffers || []).map(o => ({ 
         ...o, 
         created_at: o.createdAt, 
         updated_at: o.updatedAt,
-        validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Default 30 days if null
+        title: o.title || '',
+        description: o.description || '',
+        validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       }));
       
       res.json({
