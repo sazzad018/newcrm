@@ -920,7 +920,7 @@ async function registerRoutes(app2) {
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
-      // Return comprehensive portal data with null safety
+      // Return comprehensive portal data with null safety and snake_case aliases for frontend
       res.json({
         client: {
           id: client.id,
@@ -930,15 +930,29 @@ async function registerRoutes(app2) {
           companyName: client.companyName,
           balance: client.balance,
           status: client.status,
-          createdAt: client.createdAt
+          createdAt: client.createdAt,
+          created_at: client.createdAt, // snake_case alias for frontend
+          portalId: client.portalId
         },
-        facebookMarketing: facebookMarketing ? [facebookMarketing] : [],
-        websiteDetails: websiteDetails || null,
-        transactions: transactions || [],
+        facebookMarketing: facebookMarketing ? [{
+          ...facebookMarketing,
+          created_at: facebookMarketing.createdAt // snake_case alias
+        }] : [],
+        websiteDetails: websiteDetails ? {
+          ...websiteDetails,
+          created_at: websiteDetails.createdAt, // snake_case alias
+          updated_at: websiteDetails.updatedAt  // snake_case alias
+        } : null,
+        transactions: (transactions || []).map(t => ({
+          ...t,
+          created_at: t.createdAt // snake_case alias
+        })),
         invoices: invoices || [],
         offers: (activeOffers || []).map(o => ({
           ...o,
-          validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: o.createdAt, // snake_case alias
+          updated_at: o.updatedAt  // snake_case alias
         }))
       });
     } catch (error) {
