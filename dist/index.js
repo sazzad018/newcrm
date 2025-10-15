@@ -920,7 +920,7 @@ async function registerRoutes(app2) {
       const invoices = await storage.getInvoices(client.id);
       const activeOffers = await storage.getActiveOffers();
       
-      // Return comprehensive portal data
+      // Return comprehensive portal data with null safety
       res.json({
         client: {
           id: client.id,
@@ -936,7 +936,10 @@ async function registerRoutes(app2) {
         websiteDetails: websiteDetails || null,
         transactions: transactions || [],
         invoices: invoices || [],
-        offers: activeOffers || []
+        offers: (activeOffers || []).map(o => ({
+          ...o,
+          validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        }))
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
