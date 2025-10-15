@@ -13,7 +13,6 @@ export const clients = pgTable("clients", {
   status: text("status").notNull().default("active"), // active, inactive
   category: text("category").notNull().default("normal"), // normal, website-needed, business-plan-needed, final
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
-  portalId: varchar("portal_id").notNull().unique().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -197,7 +196,6 @@ export const clientTagsRelations = relations(clientTags, ({ one }) => ({
 // Zod schemas for validation
 export const insertClientSchema = createInsertSchema(clients).omit({ 
   id: true, 
-  portalId: true, 
   createdAt: true 
 });
 

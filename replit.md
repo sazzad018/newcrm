@@ -25,10 +25,9 @@ The application features full dark/light theme support and provides a complete B
 2.  **Financial Tracking**: Manages client balances, including top-ups and expenses.
 3.  **Facebook Marketing Integration**: Tracks daily spend, reach, and sales metrics for Facebook ad campaigns.
 4.  **Invoice Generation**: Generates PDF invoices with support for Bengali fonts.
-5.  **Client Portal**: Provides each client with a unique, secure portal to view their balance, invoices, and offers.
-6.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
-7.  **Tagging System**: Enables organization of clients using custom tags.
-8.  **Multi-language Support**: Full UI support for Bengali language.
+5.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
+6.  **Tagging System**: Enables organization of clients using custom tags.
+7.  **Multi-language Support**: Full UI support for Bengali language.
 
 ### System Design Choices
 - **Directory Structure**: Organized with a `dist/` folder for built output, `shared/` for common schemas, and standard project files.
@@ -124,6 +123,31 @@ const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_
 - ✅ All date/text fields have null safety (no undefined values)
 - ✅ Browser console shows no JavaScript errors
 - ⚠️ Portal page requires external browser testing due to screenshot tool limitations with SPA routing
+
+### Issue 6: Portal Feature Removal (October 15, 2025)
+**Decision:** User requested complete removal of Portal feature from application
+
+**Changes Made:**
+1. **Database Schema (shared/schema.ts):**
+   - Removed `portalId` field from clients table definition
+   - Removed `portalId` from insertClientSchema omit list
+
+2. **Backend API (dist/index.js):**
+   - Completely removed `/api/portal/:portalId` route (~120 lines)
+   - Removed `getClientByPortalId()` storage method
+   - Removed portalId generation from `createClient()` method
+   - Cleaned up all hardcoded portalId references in compiled code
+
+3. **Database Migration:**
+   - Dropped `portal_id` column from clients table using SQL
+
+**Verification:**
+- ✅ Server running without errors
+- ✅ Main application functioning normally
+- ✅ No "column does not exist" errors
+- ✅ Portal API route no longer exists (returns frontend SPA catch-all)
+
+**Note:** Frontend may still contain Portal UI components, but without backend API support, the feature is effectively disabled.
 
 ## Files Modified Summary
 - `dist/index.js` - All backend route and validation fixes

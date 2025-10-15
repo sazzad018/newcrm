@@ -244,7 +244,6 @@ var clients = pgTable("clients", {
   category: text("category").notNull().default("normal"),
   // normal, website-needed, business-plan-needed, final
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
-  portalId: varchar("portal_id").notNull().unique().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var facebookMarketing = pgTable("facebook_marketing", {
@@ -403,7 +402,6 @@ var clientTagsRelations = relations(clientTags, ({ one }) => ({
 }));
 var insertClientSchema = createInsertSchema(clients).omit({
   id: true,
-  portalId: true,
   createdAt: true
 });
 var insertFacebookMarketingSchema = createInsertSchema(facebookMarketing).omit({
@@ -497,16 +495,11 @@ var PgStorage = class {
   // Clients
   async createClient(data) {
     const id = generateUUID();
-    const portalId = generateUUID();
-    const [client] = await db.insert(clients).values({ ...data, id, portalId }).returning();
+    const [client] = await db.insert(clients).values({ ...data, id }).returning();
     return client;
   }
   async getClient(id) {
     const [client] = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
-    return client;
-  }
-  async getClientByPortalId(portalId) {
-    const [client] = await db.select().from(clients).where(eq(clients.portalId, portalId)).limit(1);
     return client;
   }
   async getClients() {
@@ -900,128 +893,6 @@ async function registerRoutes(app2) {
       );
       pdfDoc.pipe(res);
       pdfDoc.end();
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-  app2.get("/api/portal/:portalId", async (req, res) => {
-    // CRITICAL: Force no-cache to prevent browser caching old API responses
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
-    try {
-      const client = await storage.getClientByPortalId(req.params.portalId);
-      if (!client) {
-        return res.status(404).json({ error: "Portal not found" });
-      }
-      const fb = await storage.getFacebookMarketing(client.id);
-      const website = await storage.getWebsiteDetails(client.id);
-      const transactions2 = await storage.getTransactions(client.id);
-      const activeOffers = await storage.getActiveOffers();
-      
-      // Add snake_case aliases AND ensure all fields exist for frontend compatibility
-      const clientWithAliases = client ? { 
-        ...client, 
-        created_at: client.createdAt,
-        name: client.name || '',
-        email: client.email || '',
-        phone: client.phone || '',
-        companyName: client.companyName || ''
-      } : null;
-      
-      const websiteWithAliases = website ? { 
-        ...website, 
-        created_at: website.createdAt, 
-        updated_at: website.updatedAt,
-        domainName: website.domainName || '',
-        websiteName: website.websiteName || '',
-        websiteUrl: website.websiteUrl || '',
-        websitePassword: website.websitePassword || '',
-        wordpressUsername: website.wordpressUsername || '',
-        wordpressPassword: website.wordpressPassword || '',
-        cpanelUsername: website.cpanelUsername || '',
-        cpanelPassword: website.cpanelPassword || '',
-        nameServer1: website.nameServer1 || '',
-        nameServer2: website.nameServer2 || '',
-        websitePackageName: website.websitePackageName || '',
-        serviceNote: website.serviceNote || '',
-        whatsappUsername: website.whatsappUsername || '',
-        whatsappPassword: website.whatsappPassword || '',
-        otherDetails: website.otherDetails || ''
-      } : {
-        // Return empty object with default values when website is null
-        // CRITICAL: Include BOTH camelCase AND snake_case for frontend compatibility
-        id: '',
-        clientId: client.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        domainName: '',
-        websiteName: '',
-        websiteUrl: '',
-        websitePassword: '',
-        wordpressUsername: '',
-        wordpressPassword: '',
-        cpanelUsername: '',
-        cpanelPassword: '',
-        nameServer1: '',
-        nameServer2: '',
-        websitePackageName: '',
-        serviceNote: '',
-        whatsappUsername: '',
-        whatsappPassword: '',
-        otherDetails: ''
-      };
-      
-      const fbWithAliases = fb ? [{ 
-        ...fb, 
-        created_at: fb.createdAt,
-        date: fb.date || new Date().toISOString(),
-        campaignDetails: fb.campaignDetails || '',
-        adAccountId: fb.adAccountId || ''
-      }] : [];
-      
-      const transactionsWithAliases = (transactions2 || []).map(t => ({ 
-        ...t, 
-        created_at: t.createdAt,
-        type: t.type || '',
-        description: t.description || '',
-        date: t.date || new Date().toISOString()
-      }));
-      
-      const offersWithAliases = (activeOffers || []).map(o => ({ 
-        ...o, 
-        created_at: o.createdAt, 
-        updated_at: o.updatedAt,
-        title: o.title || '',
-        description: o.description || '',
-        validUntil: o.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      }));
-      
-      const response = {
-        client: clientWithAliases,
-        facebookMarketing: fbWithAliases,
-        websiteDetails: websiteWithAliases,
-        transactions: transactionsWithAliases,
-        offers: offersWithAliases
-      };
-      
-      // Debug: Log camelCase fields that might be undefined
-      console.log('[Portal Debug] Response timestamps:', {
-        'client.createdAt': response.client?.createdAt ? 'EXISTS' : 'UNDEFINED',
-        'website.createdAt': response.websiteDetails?.createdAt ? 'EXISTS' : 'UNDEFINED',
-        'website.updatedAt': response.websiteDetails?.updatedAt ? 'EXISTS' : 'UNDEFINED',
-        'fb[0].createdAt': response.facebookMarketing?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
-        'fb[0].date': response.facebookMarketing?.[0]?.date ? 'EXISTS' : 'UNDEFINED',
-        'offers[0].createdAt': response.offers?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
-        'offers[0].updatedAt': response.offers?.[0]?.updatedAt ? 'EXISTS' : 'UNDEFINED',
-        'trans[0].createdAt': response.transactions?.[0]?.createdAt ? 'EXISTS' : 'UNDEFINED',
-        'trans[0].date': response.transactions?.[0]?.date ? 'EXISTS' : 'UNDEFINED'
-      });
-      
-      res.json(response);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
