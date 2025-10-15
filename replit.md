@@ -72,27 +72,28 @@ The application features full dark/light theme support and provides a complete B
 1. Enhanced Client API to include all related data (line 711-729)
 2. Changed `facebookMarketing: fb` → `facebookMarketing: fb ? [fb] : []` for array format
 
-### Issue 4: Client Portal TypeError
+### Issue 4: Client Portal TypeError - Snake_case Field Mismatch
 **Problem:** `TypeError: Cannot read properties of undefined (reading 'split')` when opening Client Portal
 
-**Root Cause:** Portal API missing `websiteDetails` field - frontend tries to access undefined field
+**Root Cause Analysis:**
+1. Frontend bundle expects **snake_case** timestamp fields (`created_at`, `updated_at`)
+2. Backend Drizzle ORM returns **camelCase** fields (`createdAt`, `updatedAt`)
+3. Frontend code calls `created_at.split('T')` → but field doesn't exist → `undefined.split()` error
+4. Additionally needed `websiteDetails.createdAt` column in database
 
-**Solution (Line 909-927):**
+**Solutions Applied:**
+1. **Database:** Added `created_at` column to `website_details` table
+2. **Schema (shared/schema.ts):** Added `createdAt` field to websiteDetails table definition
+3. **Compiled Code (dist/index.js):** Updated hardcoded schema to include `createdAt` field
+4. **Portal API (dist/index.js line 910-935):** Added snake_case aliases for all timestamp fields:
 ```javascript
-// Portal API now includes all required fields:
-app2.get("/api/portal/:portalId", async (req, res) => {
-  const client = await storage.getClientByPortalId(req.params.portalId);
-  const fb = await storage.getFacebookMarketing(client.id);
-  const website = await storage.getWebsiteDetails(client.id);  // Added
-  const transactions2 = await storage.getTransactions(client.id);
-  res.json({
-    client,
-    facebookMarketing: fb ? [fb] : [],  // Array format
-    websiteDetails: website,  // Added
-    transactions: transactions2
-  });
-});
+// Add snake_case aliases for frontend compatibility
+const clientWithAliases = client ? { ...client, created_at: client.createdAt } : null;
+const websiteWithAliases = website ? { ...website, created_at: website.createdAt, updated_at: website.updatedAt } : null;
+const fbWithAliases = fb ? [{ ...fb, created_at: fb.createdAt }] : [];
+const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_at: t.createdAt }));
 ```
+5. **Cache Busting (dist/public/index.html):** Added query parameter to JS file to force browser cache refresh
 
 ## Files Modified Summary
 - `dist/index.js` - All backend route and validation fixes

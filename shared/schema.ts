@@ -48,6 +48,7 @@ export const websiteDetails = pgTable("website_details", {
   whatsappUsername: text("whatsapp_username"),
   whatsappPassword: text("whatsapp_password"),
   otherDetails: text("other_details"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -208,7 +209,8 @@ export const insertFacebookMarketingSchema = createInsertSchema(facebookMarketin
 });
 
 export const insertWebsiteDetailsSchema = createInsertSchema(websiteDetails).omit({ 
-  id: true, 
+  id: true,
+  createdAt: true,
   updatedAt: true 
 });
 

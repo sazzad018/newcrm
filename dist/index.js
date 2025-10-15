@@ -275,6 +275,7 @@ var websiteDetails = pgTable("website_details", {
   whatsappUsername: text("whatsapp_username"),
   whatsappPassword: text("whatsapp_password"),
   otherDetails: text("other_details"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 var transactions = pgTable("transactions", {
@@ -912,11 +913,18 @@ async function registerRoutes(app2) {
       const fb = await storage.getFacebookMarketing(client.id);
       const website = await storage.getWebsiteDetails(client.id);
       const transactions2 = await storage.getTransactions(client.id);
+      
+      // Add snake_case aliases for frontend compatibility
+      const clientWithAliases = client ? { ...client, created_at: client.createdAt } : null;
+      const websiteWithAliases = website ? { ...website, created_at: website.createdAt, updated_at: website.updatedAt } : null;
+      const fbWithAliases = fb ? [{ ...fb, created_at: fb.createdAt }] : [];
+      const transactionsWithAliases = (transactions2 || []).map(t => ({ ...t, created_at: t.createdAt }));
+      
       res.json({
-        client,
-        facebookMarketing: fb ? [fb] : [],
-        websiteDetails: website,
-        transactions: transactions2
+        client: clientWithAliases,
+        facebookMarketing: fbWithAliases,
+        websiteDetails: websiteWithAliases,
+        transactions: transactionsWithAliases
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
