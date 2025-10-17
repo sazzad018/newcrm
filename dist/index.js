@@ -1257,7 +1257,12 @@ async function registerRoutes(app2) {
         generatedTitle
       });
       
-      res.json(campaignTitle);
+      // Return newly created title along with all titles for frontend to display
+      const allTitles = await storage.getCampaignTitles();
+      res.json({
+        ...campaignTitle,
+        allTitles: allTitles
+      });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
