@@ -1228,18 +1228,32 @@ async function registerRoutes(app2) {
       
       // Generate campaign title based on client name, budget, and end date
       const budgetFormatted = parseFloat(budget).toFixed(0);
-      const dateObj = new Date(endDate);
-      const month = dateObj.toLocaleDateString('bn-BD', { month: 'long' });
+      
+      // Parse date safely - handle both ISO string and timestamp
+      let dateObj;
+      if (typeof endDate === 'string') {
+        // If it's a date string, parse it
+        dateObj = new Date(endDate.split('T')[0]); // Remove time portion to avoid timezone issues
+      } else {
+        dateObj = new Date(endDate);
+      }
+      
+      // Use manual month names for Bengali to avoid locale issues
+      const bengaliMonths = [
+        'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+        'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+      ];
+      const month = bengaliMonths[dateObj.getMonth()];
       const day = dateObj.getDate();
       
       // Bengali campaign title format: "ক্লায়েন্ট নাম - ৫০০০ টাকা - ৩১ অক্টোবর পর্যন্ত"
       const generatedTitle = `${clientName} - ${budgetFormatted} টাকা - ${day} ${month} পর্যন্ত`;
       
-      // Save to database
+      // Save to database with ISO date string
       const campaignTitle = await storage.createCampaignTitle({
         clientName,
         budget: budget.toString(),
-        endDate: new Date(endDate),
+        endDate: dateObj,
         generatedTitle
       });
       
