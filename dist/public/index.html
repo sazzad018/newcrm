@@ -8,10 +8,198 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@100..900&family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      #login-page {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 10000;
+        font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+      }
+      #login-page.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-container {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        max-width: 400px;
+        width: 90%;
+      }
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .login-header h1 {
+        color: #333;
+        margin: 0 0 10px 0;
+        font-size: 28px;
+      }
+      .login-header p {
+        color: #666;
+        margin: 0;
+        font-size: 14px;
+      }
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .form-group label {
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      .form-group input {
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: inherit;
+        transition: border-color 0.3s;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .login-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 14px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+      .login-button:active {
+        transform: translateY(0);
+      }
+      .login-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .error-message {
+        color: #e53e3e;
+        font-size: 14px;
+        text-align: center;
+        margin-top: -10px;
+        display: none;
+      }
+      .error-message.show {
+        display: block;
+      }
+      #root {
+        display: none;
+      }
+      #root.show {
+        display: block;
+      }
+    </style>
     <script type="module" crossorigin src="/assets/index-CqymNPEV.js?v=1760556493794"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BysdxcE8.css?v=1760556493794">
   </head>
   <body>
+    <div id="login-page">
+      <div class="login-container">
+        <div class="login-header">
+          <h1>অ্যাডমিন লগইন</h1>
+          <p>ড্যাশবোর্ডে প্রবেশ করতে পাসওয়ার্ড দিন</p>
+        </div>
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="password">পাসওয়ার্ড</label>
+            <input type="password" id="password" name="password" placeholder="পাসওয়ার্ড লিখুন" required />
+          </div>
+          <div id="error-message" class="error-message">ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</div>
+          <button type="submit" class="login-button" id="login-button">লগইন করুন</button>
+        </form>
+      </div>
+    </div>
     <div id="root"></div>
+    <script>
+      (async function() {
+        const isClientPortal = window.location.pathname.startsWith('/portal/');
+        
+        if (isClientPortal) {
+          document.getElementById('root').classList.add('show');
+          return;
+        }
+        
+        const checkAuth = async () => {
+          try {
+            const response = await fetch('/api/admin/check');
+            const data = await response.json();
+            return data.authenticated;
+          } catch (error) {
+            return false;
+          }
+        };
+        
+        const isAuthenticated = await checkAuth();
+        
+        if (isAuthenticated) {
+          document.getElementById('root').classList.add('show');
+        } else {
+          document.getElementById('login-page').classList.add('show');
+        }
+        
+        const loginForm = document.getElementById('login-form');
+        const errorMessage = document.getElementById('error-message');
+        const loginButton = document.getElementById('login-button');
+        const passwordInput = document.getElementById('password');
+        
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const password = passwordInput.value;
+          errorMessage.classList.remove('show');
+          loginButton.disabled = true;
+          loginButton.textContent = 'লগইন হচ্ছে...';
+          
+          try {
+            const response = await fetch('/api/admin/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ password }),
+            });
+            
+            if (response.ok) {
+              document.getElementById('login-page').classList.remove('show');
+              document.getElementById('root').classList.add('show');
+            } else {
+              errorMessage.classList.add('show');
+              passwordInput.value = '';
+              passwordInput.focus();
+            }
+          } catch (error) {
+            errorMessage.textContent = 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+            errorMessage.classList.add('show');
+          } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = 'লগইন করুন';
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
