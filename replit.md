@@ -21,28 +21,29 @@ The application features full dark/light theme support and provides a complete B
 - **Pre-built Package**: The application is provided as a pre-built production package, meaning no build step is required for deployment; all frontend and backend assets are pre-compiled and ready to run.
 
 ### Feature Specifications
-1.  **Client Management**: Comprehensive tools for tracking client information, status, and categorization.
-2.  **Financial Tracking**: 
+1.  **Admin Authentication**: Password-protected admin dashboard with session-based authentication. Uses `ADMIN_PASSWORD` environment variable for secure login. Client portal routes remain publicly accessible without authentication.
+2.  **Client Management**: Comprehensive tools for tracking client information, status, and categorization.
+3.  **Financial Tracking**: 
     - **Transaction History (লেনদেন ইতিহাস)**: Shows ONLY admin top-ups with + signs (+100, +200). FB marketing expenses are NOT shown here.
     - **Balance Calculation**: Top-ups add to balance, FB marketing daily spend auto-deducts from balance without creating transaction records.
     - **Separate Tracking**: Transaction history and FB marketing records are kept completely separate.
-3.  **Facebook Marketing Integration**: Tracks daily spend, reach, and sales metrics for Facebook ad campaigns. Supports multiple records per client, automatic balance deduction on spend (without transaction records), and pagination. FB marketing section shows ONLY daily spend records, separate from transaction history.
-4.  **Invoice Generation**: Generates PDF invoices with support for Bengali fonts.
-5.  **Client Portal**: Each client receives a unique portal link (auto-generated UUID) for read-only access to their data including:
+4.  **Facebook Marketing Integration**: Tracks daily spend, reach, and sales metrics for Facebook ad campaigns. Supports multiple records per client, automatic balance deduction on spend (without transaction records), and pagination. FB marketing section shows ONLY daily spend records, separate from transaction history.
+5.  **Invoice Generation**: Generates PDF invoices with support for Bengali fonts.
+6.  **Client Portal**: Each client receives a unique portal link (auto-generated UUID) for read-only access to their data including:
     - Current balance (বর্তমান ব্যালেন্স)
     - Total top-ups (মোট টপ-আপ) - sum of all admin top-ups
     - Transaction history (last 10 top-ups only, with + formatting)
     - Invoices
     - Facebook marketing metrics (last 10 daily spend records)
     - Website details and offers
-6.  **Dashboard Statistics**:
+7.  **Dashboard Statistics**:
     - Total clients, active clients
     - Total balance across all clients
     - Total ad spend
     - Monthly Revenue (মাসিক আয়) - shows total top-ups for current month only
-7.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
-8.  **Tagging System**: Enables organization of clients using custom tags.
-9.  **Multi-language Support**: Full UI support for Bengali language.
+8.  **Quick Messages**: Allows saving of frequently used messages, payment details, addresses, and contacts.
+9.  **Tagging System**: Enables organization of clients using custom tags.
+10.  **Multi-language Support**: Full UI support for Bengali language.
 
 ### System Design Choices
 - **Directory Structure**: Organized with a `dist/` folder for built output, `shared/` for common schemas, and standard project files.
