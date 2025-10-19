@@ -747,8 +747,9 @@ var PgStorage = class {
 var storage = new PgStorage();
 
 // server/routes.shared-hosting.ts
-async function registerRoutes(app2) {
-  app2.get("/api/clients", async (req, res) => {
+async function registerRoutes(app2, requireAuth) {
+  // Admin routes - protected
+  app2.get("/api/clients", requireAuth, async (req, res) => {
     try {
       const clients2 = await storage.getClients();
       res.json(clients2);
@@ -756,7 +757,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.get("/api/clients/:id", async (req, res) => {
+  app2.get("/api/clients/:id", requireAuth, async (req, res) => {
     try {
       const client = await storage.getClient(req.params.id);
       if (!client) {
@@ -784,7 +785,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/clients", async (req, res) => {
+  app2.post("/api/clients", requireAuth, async (req, res) => {
     try {
       const validated = insertClientSchema.parse(req.body);
       const client = await storage.createClient(validated);
@@ -793,7 +794,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.patch("/api/clients/:id", async (req, res) => {
+  app2.patch("/api/clients/:id", requireAuth, async (req, res) => {
     try {
       const validated = insertClientSchema.partial().parse(req.body);
       const client = await storage.updateClient(req.params.id, validated);
@@ -805,7 +806,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.delete("/api/clients/:id", async (req, res) => {
+  app2.delete("/api/clients/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteClient(req.params.id);
       res.status(204).send();
@@ -813,7 +814,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/clients/:id/facebook-marketing", async (req, res) => {
+  app2.post("/api/clients/:id/facebook-marketing", requireAuth, async (req, res) => {
     try {
       const fbData = { ...req.body, clientId: req.params.id };
       const validated = insertFacebookMarketingSchema.parse(fbData);
@@ -833,7 +834,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.delete("/api/facebook-marketing/:id", async (req, res) => {
+  app2.delete("/api/facebook-marketing/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteFacebookMarketing(req.params.id);
       res.json({ success: true });
@@ -841,7 +842,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/clients/:id/website-details", async (req, res) => {
+  app2.post("/api/clients/:id/website-details", requireAuth, async (req, res) => {
     try {
       const websiteData = { ...req.body, clientId: req.params.id };
       const validated = insertWebsiteDetailsSchema.parse(websiteData);
@@ -859,7 +860,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/clients/:id/topup", async (req, res) => {
+  app2.post("/api/clients/:id/topup", requireAuth, async (req, res) => {
     try {
       const { amount, description } = req.body;
       const clientId = req.params.id;
@@ -876,7 +877,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.post("/api/transactions", async (req, res) => {
+  app2.post("/api/transactions", requireAuth, async (req, res) => {
     try {
       const validated = insertTransactionSchema.parse(req.body);
       const transaction = await storage.createTransaction(validated);
@@ -914,7 +915,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/invoices", async (req, res) => {
+  app2.post("/api/invoices", requireAuth, async (req, res) => {
     try {
       const validated = insertInvoiceSchema.parse(req.body);
       const invoice = await storage.createInvoice(validated);
@@ -923,7 +924,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.get("/api/invoices", async (req, res) => {
+  app2.get("/api/invoices", requireAuth, async (req, res) => {
     try {
       const clientId = req.query.clientId;
       const invoices2 = await storage.getInvoices(clientId);
@@ -943,7 +944,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.patch("/api/invoices/:id", async (req, res) => {
+  app2.patch("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
       const validated = insertInvoiceSchema.partial().parse(req.body);
       const invoice = await storage.updateInvoice(req.params.id, validated);
@@ -955,7 +956,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.delete("/api/invoices/:id", async (req, res) => {
+  app2.delete("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteInvoice(req.params.id);
       res.status(204).send();
@@ -1088,7 +1089,7 @@ async function registerRoutes(app2) {
     }
   });
   
-  app2.get("/api/tags", async (req, res) => {
+  app2.get("/api/tags", requireAuth, async (req, res) => {
     try {
       const tags2 = await storage.getTags();
       res.json(tags2);
@@ -1096,7 +1097,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/tags", async (req, res) => {
+  app2.post("/api/tags", requireAuth, async (req, res) => {
     try {
       const tag = await storage.createTag(req.body);
       res.status(201).json(tag);
@@ -1104,7 +1105,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.patch("/api/tags/:id", async (req, res) => {
+  app2.patch("/api/tags/:id", requireAuth, async (req, res) => {
     try {
       const tag = await storage.updateTag(req.params.id, req.body);
       res.json(tag);
@@ -1112,7 +1113,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.delete("/api/tags/:id", async (req, res) => {
+  app2.delete("/api/tags/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteTag(req.params.id);
       res.status(204).send();
@@ -1120,7 +1121,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/clients/:clientId/tags/:tagId", async (req, res) => {
+  app2.post("/api/clients/:clientId/tags/:tagId", requireAuth, async (req, res) => {
     try {
       const clientTag = await storage.addClientTag(req.params.clientId, req.params.tagId);
       res.status(201).json(clientTag);
@@ -1136,7 +1137,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.delete("/api/clients/:clientId/tags/:tagId", async (req, res) => {
+  app2.delete("/api/clients/:clientId/tags/:tagId", requireAuth, async (req, res) => {
     try {
       await storage.removeClientTag(req.params.clientId, req.params.tagId);
       res.status(204).send();
@@ -1160,7 +1161,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/offers", async (req, res) => {
+  app2.post("/api/offers", requireAuth, async (req, res) => {
     try {
       const validated = insertOfferSchema.parse(req.body);
       const offer = await storage.createOffer(validated);
@@ -1169,7 +1170,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.patch("/api/offers/:id", async (req, res) => {
+  app2.patch("/api/offers/:id", requireAuth, async (req, res) => {
     try {
       const validated = insertOfferSchema.partial().parse(req.body);
       const offer = await storage.updateOffer(req.params.id, validated);
@@ -1178,7 +1179,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.delete("/api/offers/:id", async (req, res) => {
+  app2.delete("/api/offers/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteOffer(req.params.id);
       res.status(204).send();
@@ -1186,7 +1187,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.get("/api/quick-messages", async (req, res) => {
+  app2.get("/api/quick-messages", requireAuth, async (req, res) => {
     try {
       const messages = await storage.getQuickMessages();
       res.json(messages);
@@ -1194,7 +1195,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: error.message });
     }
   });
-  app2.post("/api/quick-messages", async (req, res) => {
+  app2.post("/api/quick-messages", requireAuth, async (req, res) => {
     try {
       const validated = insertQuickMessageSchema.parse(req.body);
       const message = await storage.createQuickMessage(validated);
@@ -1203,7 +1204,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.patch("/api/quick-messages/:id", async (req, res) => {
+  app2.patch("/api/quick-messages/:id", requireAuth, async (req, res) => {
     try {
       const validated = insertQuickMessageSchema.partial().parse(req.body);
       const message = await storage.updateQuickMessage(req.params.id, validated);
@@ -1212,7 +1213,7 @@ async function registerRoutes(app2) {
       res.status(400).json({ error: error.message });
     }
   });
-  app2.delete("/api/quick-messages/:id", async (req, res) => {
+  app2.delete("/api/quick-messages/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteQuickMessage(req.params.id);
       res.status(204).send();
@@ -1222,7 +1223,7 @@ async function registerRoutes(app2) {
   });
   
   // Campaign Title Generator
-  app2.post("/api/campaign-titles/generate", async (req, res) => {
+  app2.post("/api/campaign-titles/generate", requireAuth, async (req, res) => {
     try {
       const { clientName, budget, endDate } = req.body;
       
@@ -1268,7 +1269,7 @@ async function registerRoutes(app2) {
     }
   });
   
-  app2.get("/api/campaign-titles", async (req, res) => {
+  app2.get("/api/campaign-titles", requireAuth, async (req, res) => {
     try {
       const titles = await storage.getCampaignTitles();
       res.json(titles);
@@ -1277,7 +1278,7 @@ async function registerRoutes(app2) {
     }
   });
   
-  app2.delete("/api/campaign-titles/:id", async (req, res) => {
+  app2.delete("/api/campaign-titles/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteCampaignTitle(req.params.id);
       res.status(204).send();
@@ -1286,7 +1287,7 @@ async function registerRoutes(app2) {
     }
   });
   
-  app2.get("/api/stats", async (req, res) => {
+  app2.get("/api/stats", requireAuth, async (req, res) => {
     try {
       const stats = await storage.getStats();
       res.json(stats);
@@ -1301,9 +1302,29 @@ async function registerRoutes(app2) {
 // server/index.shared-hosting.ts
 import path2 from "path";
 import fs from "fs";
+import session from "express-session";
 var app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'social-ads-expert-session-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true if using HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Auth middleware to protect admin routes
+const requireAuth = (req, res, next) => {
+  if (req.session && req.session.isAuthenticated) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Unauthorized - Please login' });
+};
 function log(message) {
   const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -1337,8 +1358,37 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Authentication routes
+app.post("/api/admin/login", (req, res) => {
+  const { password } = req.body;
+  
+  if (password === process.env.ADMIN_PASSWORD) {
+    req.session.isAuthenticated = true;
+    return res.json({ success: true, message: 'Login successful' });
+  }
+  
+  return res.status(401).json({ error: 'Invalid password' });
+});
+
+app.post("/api/admin/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.json({ success: true, message: 'Logout successful' });
+  });
+});
+
+app.get("/api/admin/check", (req, res) => {
+  if (req.session && req.session.isAuthenticated) {
+    return res.json({ authenticated: true });
+  }
+  return res.json({ authenticated: false });
+});
+
 (async () => {
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, requireAuth);
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
